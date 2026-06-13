@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>World Cup 2026 Spielplan</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <header>
+        <h1>FIFA World Cup 2026</h1>
+        <p>USA, Mexiko & Kanada</p>
+    </header>
+
+    <main id="app">
+        <section class="section">
+            <h2 class="collapsible-trigger" onclick="toggleSection('groups-container')">Gruppenphase</h2>
+            <div id="groups-container" class="groups-grid"></div>
+        </section>
+
+        <section class="section">
+            <h2 class="collapsible-trigger" onclick="toggleSection('best-thirds-container')">Beste Gruppendritte</h2>
+            <div id="best-thirds-container" class="group-card"></div>
+        </section>
+
+        <section class="section">
+            <h2 class="collapsible-trigger" onclick="toggleSection('knockout-container')">KO-Runde</h2>
+            <div id="knockout-container" class="bracket"></div>
+        </section>
+    </main>
+
+    <!-- Scripte am Ende laden -->
+    <script src="script.js"></script>
+</body>
+</html>

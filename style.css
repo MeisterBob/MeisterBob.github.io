@@ -1,0 +1,206 @@
+:root {
+    --primary-color: #0055a4;
+    --secondary-color: #ef4135;
+    --bg-color: #f0f2f5;
+    --card-bg: #ffffff;
+}
+
+body {
+    font-family: 'Inter', system-ui, -apple-system, sans-serif;
+    background-color: var(--bg-color);
+    margin: 0;
+    padding: 20px;
+    color: #1a1a1a;
+}
+
+header { text-align: center; margin-bottom: 40px; }
+
+.groups-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: 25px;
+}
+
+.group-card {
+    background: var(--card-bg);
+    border-radius: 12px;
+    padding: 15px;
+    box-shadow: 0 4px 6px rgba(0,0,0,0.05);
+}
+
+table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 10px;
+}
+
+th { background: #f8f9fa; font-size: 0.8em; color: #666; }
+td, th { padding: 10px; text-align: center; border-bottom: 1px solid #eee; }
+.team-name { text-align: left; font-weight: 600; }
+
+.flag {
+    width: 20px;
+    height: auto;
+    vertical-align: middle;
+    margin-right: 4px;
+    margin-left: 4px;
+    border-radius: 2px;
+    box-shadow: 0 1px 2px rgba(0,0,0,0.1);
+    flex-shrink: 0; /* Verhindert, dass die Flagge bei Platzmangel schrumpft */
+}
+
+.match-list { margin-top: 15px; font-size: 0.85em; }
+.match { display: flex; justify-content: space-around; padding: 5px; flex-direction: column; text-align: center; }
+
+.match .teams,
+.knockout-match .teams-ko { /* Apply to both group and knockout team spans */
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap; /* Allows items to wrap if space is limited */
+}
+.match .teams .team-name-wrapper,
+.knockout-match .teams-ko .team-name-wrapper {
+    flex: 1; /* Sichert gleiche Breite für beide Team-Bereiche */
+    display: flex;
+    align-items: center;
+    overflow: hidden;
+}
+.team-name-text {
+    flex: 1;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+.match .teams .team-name-wrapper:first-child,
+.knockout-match .teams-ko .team-name-wrapper:first-child {
+    justify-content: flex-end;
+    padding-right: 5px; /* Abstand zum Trenner */
+}
+.match .teams .team-name-wrapper:first-child .team-name-text,
+.knockout-match .teams-ko .team-name-wrapper:first-child .team-name-text {
+    text-align: right;
+}
+.match .teams .team-name-wrapper:last-child,
+.knockout-match .teams-ko .team-name-wrapper:last-child {
+    justify-content: flex-start;
+    padding-left: 5px; /* Abstand zum Trenner */
+}
+.match .teams .team-name-wrapper:last-child .team-name-text,
+.knockout-match .teams-ko .team-name-wrapper:last-child .team-name-text {
+    text-align: left;
+}
+.match .teams .vs-text,
+.knockout-match .teams-ko .vs-text {
+    margin: 0 5px; /* Space around 'vs' text */
+}
+.score { font-weight: bold; font-family: monospace; }
+
+.qualified { background-color: #e6f4ea; }
+.eliminated { opacity: 0.6; background-color: #fce8e6; }
+
+.live-badge {
+    background-color: #e74c3c; /* Roter Hintergrund */
+    color: white;
+    font-size: 0.7em;
+    font-weight: bold;
+    padding: 2px 6px;
+    border-radius: 4px;
+    margin: 0 5px; /* Symmetrischer Abstand */
+    animation: pulse 1.5s infinite; /* Pulsierender Effekt */
+}
+
+@keyframes pulse {
+    0% { transform: scale(1); opacity: 1; }
+    50% { transform: scale(1.05); opacity: 0.8; }
+    100% { transform: scale(1); opacity: 1; }
+}
+
+
+.today-match {
+    background-color: #fff9c4 !important; /* Auffälliges Gelb für heute */
+    border-radius: 8px;
+}
+
+.bracket {
+    display: flex;
+    overflow-x: auto; /* Erlaubt horizontales Scrollen auf dem Handy */
+    -webkit-overflow-scrolling: touch;
+    padding: 20px 0;
+    gap: 40px; /* Erhöhter Abstand zwischen den Runden */
+    align-items: flex-start; /* Runden oben ausrichten */
+    min-height: 400px; /* Genug Höhe für die visuelle Darstellung des Brackets */
+    justify-content: flex-start; /* Verhindert das "Abschneiden" links bei kleinen Bildschirmen */
+}
+
+.round-column {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    min-width: 220px; /* Mindestbreite für eine Runden-Spalte */
+    padding-top: 30px; /* Platz für den Rundentitel */
+    position: relative;
+}
+
+.round-column h3 {
+    position: absolute;
+    top: 0;
+    margin: 0;
+    font-size: 1.1em;
+    color: #333;
+    font-weight: 600;
+}
+
+#knockout-container h3 { text-align: center; }
+
+.knockout-match {
+    background: var(--card-bg);
+    border-radius: 8px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.08);
+    padding: 10px 15px;
+    margin-bottom: 25px; /* Abstand zwischen den Spielen in einer Runde */
+    width: 100%;
+    text-align: center;
+    position: relative;
+    display: flex;
+    flex-direction: column; /* Teamnamen und Ergebnis stapeln */
+    justify-content: center;
+    align-items: center;
+    font-size: 0.95em;
+    min-height: 60px; /* Konsistente Höhe für Spiele */
+    border: 1px solid #e0e0e0;
+}
+
+.knockout-match span:first-child {
+    font-weight: 500;
+    margin-bottom: 5px;
+}
+
+.knockout-match .score {
+    font-size: 1.1em;
+    color: var(--primary-color);
+}
+
+/* Collapsible Styles */
+.collapsible-trigger {
+    cursor: pointer;
+    user-select: none;
+}
+
+.collapsible-trigger::after {
+    content: ' [−]';
+    font-size: 0.7em;
+    color: var(--primary-color);
+}
+
+.collapsed-header::after {
+    content: ' [+]';
+}
+
+.collapsed-content { display: none !important; }
+
+/* Optimierung für sehr kleine Bildschirme */
+@media (max-width: 480px) {
+    body { padding: 10px; }
+    h1 { font-size: 1.5em; }
+    .bracket { justify-content: flex-start; }
+}
