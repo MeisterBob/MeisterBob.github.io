@@ -90,7 +90,7 @@ function calculateTable(groupName) {
 
             if (m.scoreHome > m.scoreAway) {
                 home.won++; home.pts += 3; away.lost++;
-            } else if (m.goalsFor < m.ga) {
+            } else if (m.scoreHome < m.scoreAway) {
                 away.won++; away.pts += 3; home.lost++;
             } else {
                 home.drawn++; away.drawn++; home.pts += 1; away.pts += 1;
