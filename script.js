@@ -109,7 +109,7 @@ function renderGroupPhase() {
     const now = new Date();
     const oneDayLater = new Date(now.getTime() + 24 * 60 * 60 * 1000);
 
-    for (const groupName in wmConfig.groups) {
+    Object.keys(wmConfig.groups).sort().forEach(groupName => {
         const tableData = calculateTable(groupName);
         const card = document.createElement('div');
         card.className = 'group-card';
@@ -158,17 +158,17 @@ function renderGroupPhase() {
 
         card.innerHTML = html + `</div>`;
         container.appendChild(card);
-    }
+    });
 }
 
 function renderBestThirds() {
     const thirds = [];
-    for (const groupName in wmConfig.groups) {
+    Object.keys(wmConfig.groups).sort().forEach(groupName => {
         const tableData = calculateTable(groupName);
         if (tableData && tableData.length >= 3) {
             thirds.push({ ...tableData[2], group: groupName });
         }
-    }
+    });
 
     // Sortierung der Dritten: Punkte -> Tordifferenz -> Tore
     thirds.sort((a, b) => b.pts - a.pts || b.diff - a.diff || b.goalsFor - a.goalsFor);
