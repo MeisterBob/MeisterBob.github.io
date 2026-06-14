@@ -134,13 +134,23 @@ function renderGroupPhase() {
         let html = `<h3>Gruppe ${groupName}</h3><table>
             <thead><tr><th>Team</th><th>Diff</th><th>Pkt</th></tr></thead><tbody>`;
 
+        // Ermitteln, welche Teams in dieser Gruppe gerade live spielen
+        const liveTeamsInGroup = new Set();
+        wmConfig.matches.filter(m => m.group === groupName).forEach(m => {
+            if (m.MatchStatus === 3) {
+                liveTeamsInGroup.add(m.home);
+                liveTeamsInGroup.add(m.away);
+            }
+        });
+
         tableData.forEach((t, index) => {
             const isTopTwo = index <= 1;
             const isBestThird = index === 2 && qualifiedThirdNames.includes(t.name);
             const rowClass = (isTopTwo || isBestThird) ? "qualified" : "";
 
+            const liveBadgeForTable = liveTeamsInGroup.has(t.name) ? `<span class="live-badge">LIVE</span>` : '';
             html += `<tr class="${rowClass}">`
-                + `<td class="team-name">${getFlagHtml(t.name)}${t.name}</td>`
+                + `<td class="team-name">${getFlagHtml(t.name)}${t.name} ${liveBadgeForTable}</td>`
                 + `<td>${t.diff}</td>`
                 + `<td>${t.pts}</td>`
                 + `</tr>`;
@@ -187,14 +197,24 @@ function renderBestThirds() {
     const container = document.getElementById('best-thirds-container');
     if (!container) return;
 
+    // Ermitteln, welche Teams aktuell live spielen (Status 3)
+    const liveTeams = new Set();
+    wmConfig.matches.forEach(m => {
+        if (m.MatchStatus === 3) {
+            liveTeams.add(m.home);
+            liveTeams.add(m.away);
+        }
+    });
+
     let html = `<table><thead><tr><th>#</th><th>Gruppe</th><th>Team</th><th>S</th><th>U</th><th>N</th><th>Tore</th><th>Diff</th><th>Pkt</th></tr></thead><tbody>`;
 
     thirds.forEach((t, index) => {
+        const liveBadge = liveTeams.has(t.name) ? `<span class="live-badge">LIVE</span>` : '';
         html += `
         <tr class="${(index < 8) ? 'qualified' : 'eliminated'}">
             <td>${index + 1}.</td>
             <td>${t.group}</td>
-            <td class="team-name">${getFlagHtml(t.name)}${t.name}</td>
+            <td class="team-name">${getFlagHtml(t.name)}${t.name} ${liveBadge}</td>
             <td>${t.won}</td>
             <td>${t.drawn}</td>
             <td>${t.lost}</td>
