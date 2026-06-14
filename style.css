@@ -176,11 +176,6 @@ td, th { padding: 10px; text-align: center; border-bottom: 1px solid #eee; }
     width: 100%;
 }
 
-.knockout-match:hover {
-    transform: scale(1.02);
-    border-color: var(--primary-color);
-}
-
 /* Verbindungslinien (Inspired by Gist) */
 .match-wrapper::after {
     content: "";

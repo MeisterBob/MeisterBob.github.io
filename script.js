@@ -104,10 +104,27 @@ function calculateTable(groupName) {
     return table.sort((a, b) => b.pts - a.pts || b.diff - a.diff || b.goalsFor - a.goalsFor);
 }
 
+/**
+ * Berechnet das Ranking aller Gruppendritten über alle Gruppen hinweg
+ */
+function getThirdsRanking() {
+    const thirds = [];
+    for (const groupName in wmConfig.groups) {
+        const table = calculateTable(groupName);
+        if (table && table.length >= 3) {
+            thirds.push({ ...table[2], group: groupName });
+        }
+    }
+    return thirds.sort((a, b) => b.pts - a.pts || b.diff - a.diff || b.goalsFor - a.goalsFor);
+}
+
 function renderGroupPhase() {
     const container = document.getElementById('groups-container');
     const now = new Date();
     const oneDayLater = new Date(now.getTime() + 24 * 60 * 60 * 1000);
+
+    // Namen der aktuell 8 besten Gruppendritten für die Highlighting-Logik ermitteln
+    const qualifiedThirdNames = getThirdsRanking().slice(0, 8).map(t => t.name);
 
     Object.keys(wmConfig.groups).sort().forEach(groupName => {
         const tableData = calculateTable(groupName);
@@ -118,7 +135,11 @@ function renderGroupPhase() {
             <thead><tr><th>Team</th><th>Diff</th><th>Pkt</th></tr></thead><tbody>`;
 
         tableData.forEach((t, index) => {
-            html += `<tr class="${index <= 1 ? "qualified" : ""}">`
+            const isTopTwo = index <= 1;
+            const isBestThird = index === 2 && qualifiedThirdNames.includes(t.name);
+            const rowClass = (isTopTwo || isBestThird) ? "qualified" : "";
+
+            html += `<tr class="${rowClass}">`
                 + `<td class="team-name">${getFlagHtml(t.name)}${t.name}</td>`
                 + `<td>${t.diff}</td>`
                 + `<td>${t.pts}</td>`
@@ -162,17 +183,7 @@ function renderGroupPhase() {
 }
 
 function renderBestThirds() {
-    const thirds = [];
-    Object.keys(wmConfig.groups).sort().forEach(groupName => {
-        const tableData = calculateTable(groupName);
-        if (tableData && tableData.length >= 3) {
-            thirds.push({ ...tableData[2], group: groupName });
-        }
-    });
-
-    // Sortierung der Dritten: Punkte -> Tordifferenz -> Tore
-    thirds.sort((a, b) => b.pts - a.pts || b.diff - a.diff || b.goalsFor - a.goalsFor);
-
+    const thirds = getThirdsRanking();
     const container = document.getElementById('best-thirds-container');
     if (!container) return;
 
