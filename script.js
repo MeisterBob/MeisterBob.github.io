@@ -39,6 +39,7 @@ async function initApp() {
                 group: m.GroupName?.[0]?.Description ? m.GroupName[0].Description.split(' ').pop() : null,
                 home: homeName,
                 away: awayName,
+                MatchStatus: m.MatchStatus,
                 scoreHome: m.HomeTeamScore,
                 scoreAway: m.AwayTeamScore,
                 date: converted.date,
@@ -127,7 +128,7 @@ function renderGroupPhase() {
         html += `</tbody></table><div class="match-list">`;
 
         wmConfig.matches.filter(m => m.group === groupName).forEach(m => {
-            const isLive = isMatchLive(m.date, m.time, now);
+            const isLive = m.MatchStatus === 3;
             const sH = m.scoreHome ?? (isLive ? 0 : '-');
             const sA = m.scoreAway ?? (isLive ? 0 : '-');
             const timeInfo = m.date ? `<small style="display:block; color:#888; font-size:0.8em;">${m.date} ${m.time || ''}</small>` : '';
@@ -214,7 +215,7 @@ function renderKnockoutPhase() {
         roundDiv.className = 'round-column';
         roundDiv.innerHTML = `<h3>${roundName}</h3>`;
         koMatches.filter(m => m.round === roundName).forEach(m => {
-            const isLive = isMatchLive(m.date, m.time, now);
+            const isLive = m.MatchStatus === 3;
             const matchTime = parseCESTDateTime(m.date, m.time);
             const isUpcoming24h = matchTime && matchTime > now && matchTime <= oneDayLater;
             const isTodayOrSoon = isLive || isUpcoming24h;
