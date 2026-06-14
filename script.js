@@ -208,20 +208,53 @@ function renderKnockoutPhase() {
 
     // Wir filtern Spiele ohne Gruppenzuordnung (K.o.-Spiele) aus den geladenen Daten
     const koMatches = wmConfig.matches.filter(m => !m.group);
-    const rounds = [...new Set(koMatches.map(m => m.round))];
 
-    rounds.forEach(roundName => {
+    // Runden-Reihenfolge definieren
+    const roundOrder = {
+        "Sechzehntelfinale": 1,
+        "Round of 32": 1,
+        "Achtelfinale": 2,
+        "Round of 16": 2,
+        "Viertelfinale": 3,
+        "Halbfinale": 4,
+        "Spiel um Platz drei": 5,
+        "Finale": 5,
+    };
+
+    const uniqueOrders = [...new Set(koMatches.map(m => roundOrder[m.round] || 99))].sort((a, b) => a - b);
+
+    uniqueOrders.forEach(order => {
+        const matchesInColumn = koMatches.filter(m => (roundOrder[m.round] || 99) === order);
+        if (order === 5) {
+            // Sortierung innerhalb der Spalte: Finale oben, Platz 3 unten
+            matchesInColumn.sort((a, b) => a.round === "Finale" ? -1 : 1);
+        }
+
         const roundDiv = document.createElement('div');
         roundDiv.className = 'round-column';
-        roundDiv.innerHTML = `<h3>${roundName}</h3>`;
-        koMatches.filter(m => m.round === roundName).forEach(m => {
+
+        let displayTitle = matchesInColumn[0].round;
+        if (order === 5) displayTitle = "Finale";
+
+        roundDiv.innerHTML = `<h3>${displayTitle}</h3>`;
+
+        matchesInColumn.forEach(m => {
             const isLive = m.MatchStatus === 3;
             const matchTime = parseCESTDateTime(m.date, m.time);
             const isUpcoming24h = matchTime && matchTime > now && matchTime <= oneDayLater;
             const isTodayOrSoon = isLive || isUpcoming24h;
+
+            const wrapper = document.createElement('div');
+            wrapper.className = 'match-wrapper';
+            if (m.round === "Spiel um Platz drei") {
+                wrapper.classList.add('third-place-wrapper');
+            }
+            if (m.round === "Finale") {
+                wrapper.classList.add('finale-wrapper');
+            }
+
             const matchEl = document.createElement('div');
             matchEl.className = `knockout-match ${isTodayOrSoon ? 'today-match' : ''}`; // knockout-match statt match group-card
-            matchEl.style.marginBottom = '10px';
             const timeInfo = m.date ? `<small style="display:block; color:#888; font-size:0.8em;">${m.date} ${m.time || ''}</small>` : '';
             const liveBadgeHtml = isLive ? `<span class="live-badge">LIVE</span>` : '';
 
@@ -242,8 +275,10 @@ function renderKnockoutPhase() {
                     </span>
                 </span>
                 ${timeInfo}
-                <span class="score">${m.scoreHome ?? (isLive ? 0 : '')}:${m.scoreAway ?? (isLive ? 0 : '')}</span>`;
-            roundDiv.appendChild(matchEl);
+                <span class="score">${m.scoreHome ?? (isLive ? 0 : '-')}:${m.scoreAway ?? (isLive ? 0 : '-')}</span>`;
+
+            wrapper.appendChild(matchEl);
+            roundDiv.appendChild(wrapper);
         });
         container.appendChild(roundDiv);
     });
@@ -253,8 +288,9 @@ function renderKnockoutPhase() {
  * Erzeugt den HTML-Code für eine Landesflagge
  */
 function getFlagHtml(teamName) {
-    const url = wmConfig.teamFlags[teamName];
-    return url ? `<img src="${url}" class="flag" alt="${teamName}">` : '';
+    const logoUrl = "https://digitalhub.fifa.com/m/1a33060ce1c1c4d6/original/WC26_Logo.png";
+    const url = wmConfig.teamFlags[teamName] || logoUrl;
+    return `<img src="${url}" class="flag" alt="${teamName || 'TBD'}">`;
 }
 
 /**

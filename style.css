@@ -123,54 +123,137 @@ td, th { padding: 10px; text-align: center; border-bottom: 1px solid #eee; }
 
 .bracket {
     display: flex;
-    overflow-x: auto; /* Erlaubt horizontales Scrollen auf dem Handy */
+    overflow-x: auto;
     -webkit-overflow-scrolling: touch;
     padding: 20px 0;
-    gap: 40px; /* Erhöhter Abstand zwischen den Runden */
-    align-items: flex-start; /* Runden oben ausrichten */
-    min-height: 400px; /* Genug Höhe für die visuelle Darstellung des Brackets */
-    justify-content: flex-start; /* Verhindert das "Abschneiden" links bei kleinen Bildschirmen */
+    gap: 0; 
+    align-items: stretch; /* Wichtig für die vertikale Verteilung */
+    min-height: 600px;
 }
 
 .round-column {
     display: flex;
     flex-direction: column;
+    min-width: 240px;
+    padding: 50px 0; /* Platz für den Rundentitel */
+    position: relative;
+    flex: 1;
+}
+
+.match-wrapper {
+    flex: 1;
+    display: flex;
     align-items: center;
-    min-width: 220px; /* Mindestbreite für eine Runden-Spalte */
-    padding-top: 30px; /* Platz für den Rundentitel */
     position: relative;
 }
 
 .round-column h3 {
     position: absolute;
     top: 0;
-    margin: 0;
+    left: 0;
+    right: 0;
     font-size: 1.1em;
-    color: #333;
+    color: var(--primary-color);
     font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    border-bottom: 2px solid #ddd;
+    padding-bottom: 5px;
+    margin: 0 10px;
 }
-
-#knockout-container h3 { text-align: center; }
 
 .knockout-match {
     background: var(--card-bg);
     border-radius: 8px;
-    box-shadow: 0 2px 4px rgba(0,0,0,0.08);
-    padding: 10px 15px;
-    margin-bottom: 25px; /* Abstand zwischen den Spielen in einer Runde */
-    width: 100%;
-    text-align: center;
+    box-shadow: 0 3px 10px rgba(0,0,0,0.1);
+    padding: 12px;
+    margin: 0 20px;
     position: relative;
-    display: flex;
-    flex-direction: column; /* Teamnamen und Ergebnis stapeln */
-    justify-content: center;
-    align-items: center;
-    font-size: 0.95em;
-    min-height: 60px; /* Konsistente Höhe für Spiele */
+    z-index: 2;
     border: 1px solid #e0e0e0;
+    transition: transform 0.2s ease;
+    text-align: center;
+    width: 100%;
 }
 
-.knockout-match span:first-child {
+.knockout-match:hover {
+    transform: scale(1.02);
+    border-color: var(--primary-color);
+}
+
+/* Verbindungslinien (Inspired by Gist) */
+.match-wrapper::after {
+    content: "";
+    position: absolute;
+    right: 0;
+    top: 50%;
+    width: 20px;
+    border-top: 2px solid #ccc;
+    z-index: 1;
+}
+
+/* Obere Hälfte der Gabel (Erstes Team eines Paares) */
+.match-wrapper:nth-of-type(odd)::after {
+    border-right: 2px solid #ccc;
+    height: 50%; /* Reicht exakt bis zur Mitte zwischen den Spielen */
+    top: 50%;
+}
+
+/* Untere Hälfte der Gabel (Zweites Team eines Paares) */
+.match-wrapper:nth-of-type(even)::after {
+    border-right: 2px solid #ccc;
+    height: 50%; /* Reicht exakt bis zur Mitte zwischen den Spielen */
+    top: auto;
+    bottom: 50%;
+    border-top: none;
+    border-bottom: 2px solid #ccc;
+}
+
+.round-column:last-child .match-wrapper::after {
+    display: none;
+}
+
+.finale-wrapper::before,
+.match-wrapper::before {
+    content: "";
+    position: absolute;
+    left: 0;
+    top: 50%;
+    width: 20px;
+    height: 2px;
+    background-color: #ccc;
+    z-index: 1;
+}
+
+.match-wrapper.finale-wrapper {
+    align-items: flex-end;
+}
+
+.finale-wrapper::before {
+    top: 94%;
+}
+
+.match-wrapper.third-place-wrapper {
+    margin-top: 1em;
+    align-items: flex-start;
+}
+
+.round-column:first-child .match-wrapper::before {
+    display: none;
+}
+
+.third-place-wrapper::before,
+.third-place-wrapper::after,
+.finale-wrapper::after {
+    display: none !important;
+}
+
+.third-place-wrapper .knockout-match::before {
+    content: "Spiel um Platz 3";
+    margin-bottom: .3em
+}
+
+.knockout-match > span:first-child {
     font-weight: 500;
     margin-bottom: 5px;
 }
