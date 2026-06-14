@@ -89,6 +89,9 @@ td, th { padding: 10px; text-align: center; border-bottom: 1px solid #eee; }
 .knockout-match .teams-ko .team-name-wrapper:last-child .team-name-text {
     text-align: left;
 }
+.team-name-wrapper.third-place {
+    opacity: 0.3;
+}
 .match .teams .vs-text,
 .knockout-match .teams-ko .vs-text {
     margin: 0 5px; /* Space around 'vs' text */

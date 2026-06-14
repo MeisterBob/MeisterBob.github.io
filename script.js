@@ -23,8 +23,8 @@ async function initApp() {
             const timeStr = dateObj.toISOString().split('T')[1].substring(0, 5);
             const converted = convertToCEST(dateStr, timeStr, "UTC");
 
-            const homeName = m.Home?.TeamName?.[0]?.Description || m.PlaceholderHome || "TBD";
-            const awayName = m.Away?.TeamName?.[0]?.Description || m.PlaceholderAway || "TBD";
+            const homeName = m.Home?.TeamName?.[0]?.Description || m.PlaceHolderA || "TBD";
+            const awayName = m.Away?.TeamName?.[0]?.Description || m.PlaceHolderB || "TBD";
 
             if (m.Home?.PictureUrl) {
                 const formattedUrl = m.Home.PictureUrl.replace('{format}', 'sq').replace('{size}', '1');
@@ -36,7 +36,7 @@ async function initApp() {
             }
 
             return {
-                group: m.GroupName?.[0]?.Description ? m.GroupName[0].Description.split(' ').pop() : null,
+                group: m.GroupName?.[0]?.Description ? m.GroupName[0].Description.split(' ').pop() : null,
                 home: homeName,
                 away: awayName,
                 MatchStatus: m.MatchStatus,
@@ -131,7 +131,7 @@ function renderGroupPhase() {
         const card = document.createElement('div');
         card.className = 'group-card';
 
-        let html = `<h3>${groupName}</h3><table>
+        let html = `<h3>Gruppe ${groupName}</h3><table>
             <thead><tr><th>Team</th><th>Diff</th><th>Pkt</th></tr></thead><tbody>`;
 
         tableData.forEach((t, index) => {
@@ -217,6 +217,10 @@ function renderKnockoutPhase() {
         rankings[groupName] = calculateTable(groupName);
     }
 
+    // Namen der aktuell 8 besten Gruppendritten für die KO-Logik
+    const qualifiedThirds = getThirdsRanking().slice(0, 8);
+    const assignedThirds = new Set();
+
     // Wir filtern Spiele ohne Gruppenzuordnung (K.o.-Spiele) aus den geladenen Daten
     const koMatches = wmConfig.matches.filter(m => !m.group);
 
@@ -270,17 +274,17 @@ function renderKnockoutPhase() {
             const liveBadgeHtml = isLive ? `<span class="live-badge">LIVE</span>` : '';
 
             // Platzhalter wie "1. Gruppe A" durch echte Teamnamen ersetzen
-            const homeDisplay = resolveKnockoutTeam(m.home, rankings);
-            const awayDisplay = resolveKnockoutTeam(m.away, rankings);
+            const homeDisplay = resolveKnockoutTeam(m.home, rankings, qualifiedThirds, assignedThirds);
+            const awayDisplay = resolveKnockoutTeam(m.away, rankings, qualifiedThirds, assignedThirds);
 
             matchEl.innerHTML = `
                 <span class="teams-ko">
-                    <span class="team-name-wrapper">
+                    <span class="team-name-wrapper ${m.home.startsWith("3") ? 'third-place' : ''}">
                         <span class="team-name-text">${homeDisplay}</span>
                         ${getFlagHtml(homeDisplay)}
                     </span>
                     ${isLive ? liveBadgeHtml : `<span class="vs-text">vs</span>`}
-                    <span class="team-name-wrapper">
+                    <span class="team-name-wrapper ${m.away.startsWith("3") ? 'third-place' : ''}">
                         ${getFlagHtml(awayDisplay)}
                         <span class="team-name-text">${awayDisplay}</span>
                     </span>
@@ -345,34 +349,33 @@ function isGroupFinished(groupName) {
 }
 
 /**
- * Löst Platzhalter (z.B. "1. Gruppe A") in Teamnamen auf, wenn die Gruppe beendet ist
+ * Löst Platzhalter (z.B. "1A") in Teamnamen auf, wenn die Gruppe beendet ist
  */
-function resolveKnockoutTeam(name, rankings) {
+function resolveKnockoutTeam(name, rankings, qualifiedThirds = [], assignedThirds = new Set()) {
     if (!name || name === "TBD") return "TBD";
 
-    // Muster: "1. Gruppe A" oder "2. Gruppe B"
-    const match = name.match(/^([12])\.\s+Gruppe\s+([A-L])$/);
+    const match = name.match(/^([12])\.\s+Gruppe\s+([A-L])$/) || name.match(/^([12])([A-L])$/);
     if (match) {
         const rank = parseInt(match[1]);
         const group = match[2];
-        if (isGroupFinished(group)) {
-            return rankings[group][rank - 1]?.name || name;
+        if (rankings[group]) {
+            const team = rankings[group][rank - 1];
+            if (!team) return name;
+            return team.name;
         }
     }
 
-    // Muster: "Sieger Gruppe A"
-    if (name.includes("Sieger Gruppe")) {
-        const group = name.split(" ").pop();
-        if (isGroupFinished(group)) {
-            return rankings[group][0]?.name || name;
-        }
-    }
+    const complexThirdMatch = name.match(/^3([A-L\/]+)$/i);
+    if (complexThirdMatch) {
+        const possibleGroups = complexThirdMatch[1].replace(/\//g, '').toUpperCase().split('');
+        const candidate = qualifiedThirds.find(t =>
+            possibleGroups.includes(t.group) &&
+            !assignedThirds.has(t.name)
+        );
 
-    // Muster: "Zweiter Gruppe A"
-    if (name.includes("Zweiter Gruppe")) {
-        const group = name.split(" ").pop();
-        if (isGroupFinished(group)) {
-            return rankings[group][1]?.name || name;
+        if (candidate) {
+            assignedThirds.add(candidate.name);
+            return candidate.name;
         }
     }
 
