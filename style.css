@@ -101,6 +101,21 @@ td, th { padding: 10px; text-align: center; border-bottom: 1px solid #eee; }
 
 .today-match { background-color: #fff9c499 !important; border-radius: 4px; }
 
+.tv-info {
+    display: flow;
+    align-items: center;
+    background-color: transparent;
+    padding: 0;
+}
+
+.tv-logo {
+    height: 18px;
+    width: auto;
+    border-radius: 2px;
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+    margin: 0 5px
+}
+
 .bracket {
     display: flex;
     overflow-x: auto;

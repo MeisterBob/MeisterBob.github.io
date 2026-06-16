@@ -19,7 +19,7 @@ const tournaments = {
     },
 }
 const matchUrl = (season) => `https://api.fifa.com/api/v3/calendar/matches?language=de&count=500&idSeason=${season}`;
-const watchUrl = (season) => `https://api.fifa.com/api/v3/watch/season/${season}?language=de`;
+const watchUrl = (season) => `https://api.fifa.com/api/v3/watch/season/${season}?language=de&count=500`;
 
 let wmConfig = {
     tournament: tournaments.wc2026,
@@ -29,6 +29,12 @@ let wmConfig = {
     teamFlags: {}
 };
 
+const tvLogo = {
+    DasErste: 'https://extranets.fifa.com/TvStationPhotos/174.png',
+    ZDF: 'https://extranets.fifa.com/TvStationPhotos/292.png',
+    'FUSSBALL.TV 1': 'https://extranets.fifa.com/TvStationPhotos/170.png',
+    'FUSSBALL.TV 2': 'https://extranets.fifa.com/TvStationPhotos/170.png'
+};
 document.addEventListener('DOMContentLoaded', () => {
     setupTournamentSelector();
     initApp();
@@ -67,6 +73,36 @@ async function initApp() {
         const data = await response.json();
         const results = data.Results || [];
 
+        // TV-Informationen (Broadcaster) abrufen
+        let matchIdToTv = {};
+        try {
+            const watchRes = await fetch(watchUrl(wmConfig.tournament.season));
+            if (watchRes.ok) {
+                const watchData = await watchRes.json();
+                if (watchData?.Results) {
+                    watchData.Results.forEach(wm => {
+                        if (wm.IdCountry === "GER") {
+                            wm.Matches.forEach(m => {
+                                const uniqueBroadcasterKeys = new Set();
+                                m.Sources.forEach(source => {
+                                    uniqueBroadcasterKeys.add(source.Name);
+                                });
+
+                                const tvLogosHtml = Array.from(uniqueBroadcasterKeys)
+                                    .map(key => tvLogo[key] ? `<img src="${tvLogo[key]}" alt="${key}" class="tv-logo">` : key)
+                                    .join('');
+
+                                if (tvLogosHtml) {
+                                    matchIdToTv[m.IdMatch] = tvLogosHtml;
+                                }
+                            })
+                        }
+                    });
+                }
+            }
+        } catch (e) { console.warn("Watch-Daten konnten nicht geladen werden.", e); }
+
+
         // Transformation der Spiele aus der FIFA-API
         wmConfig.matches = results.map(m => {
             // FIFA liefert UTC-Daten, wir extrahieren Datum und Zeit für convertToCEST
@@ -96,7 +132,8 @@ async function initApp() {
                 scoreAway: m.AwayTeamScore,
                 date: converted.date,
                 time: converted.time,
-                round: m.StageName?.[0]?.Description || "Vorrunde"
+                round: m.StageName?.[0]?.Description || "Vorrunde",
+                tv: matchIdToTv[m.IdMatch] || ""
             };
         });
 
@@ -220,7 +257,8 @@ function renderGroupPhase() {
             const isLive = m.MatchStatus === 3;
             const sH = m.scoreHome ?? (isLive ? 0 : '-');
             const sA = m.scoreAway ?? (isLive ? 0 : '-');
-            const timeInfo = m.date ? `<small style="display:block; color:#888; font-size:0.8em;">${m.date} ${m.time || ''}</small>` : '';
+            const tvBadge = m.tv ? `<span class="tv-info">${m.tv}</span>` : '';
+            const timeInfo = m.date ? `<small style="display:block; color:#888; font-size:0.8em;">${m.date} ${m.time || ''} ${tvBadge}</small>` : '';
             const matchTime = parseCESTDateTime(m.date, m.time);
             const isUpcoming24h = matchTime && matchTime > now && matchTime <= oneDayLater;
             const todayClass = (isLive || isUpcoming24h) ? 'today-match' : '';
@@ -348,7 +386,8 @@ function renderKnockoutPhase() {
 
             const matchEl = document.createElement('div');
             matchEl.className = `knockout-match ${isTodayOrSoon ? 'today-match' : ''}`; // knockout-match statt match group-card
-            const timeInfo = m.date ? `<small style="display:block; color:#888; font-size:0.8em;">${m.date} ${m.time || ''}</small>` : '';
+            const tvBadge = m.tv ? `<span class="tv-info">${m.tv}</span>` : '';
+            const timeInfo = m.date ? `<small style="display:block; color:#888; font-size:0.8em;">${m.date} ${m.time || ''} ${tvBadge}</small>` : '';
             const liveBadgeHtml = isLive ? `<span class="live-badge">LIVE</span>` : '';
 
             // Platzhalter wie "1. Gruppe A" durch echte Teamnamen ersetzen
