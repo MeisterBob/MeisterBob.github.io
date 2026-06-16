@@ -42,29 +42,34 @@ td, th { padding: 10px; text-align: center; border-bottom: 1px solid #eee; }
     flex-shrink: 0;
 }
 
-.match-list { margin-top: 15px; font-size: 0.85em; }
-.match { display: flex; justify-content: space-around; padding: 5px; flex-direction: column; text-align: center; }
-
-.match .teams,
-.knockout-match .teams-ko { display: flex; align-items: center; flex-wrap: wrap; }
-.match .teams .team-name-wrapper,
-.knockout-match .teams-ko .team-name-wrapper { flex: 1; display: flex; align-items: center; overflow: hidden; }
-.team-name-text { flex: 1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.match .teams .team-name-wrapper:first-child,
-.knockout-match .teams-ko .team-name-wrapper:first-child { justify-content: flex-end; padding-right: 5px; }
-.match .teams .team-name-wrapper:first-child .team-name-text,
-.knockout-match .teams-ko .team-name-wrapper:first-child .team-name-text { text-align: right; }
-.match .teams .team-name-wrapper:last-child,
-.knockout-match .teams-ko .team-name-wrapper:last-child { justify-content: flex-start; padding-left: 5px; }
-.match .teams .team-name-wrapper:last-child .team-name-text,
-.knockout-match .teams-ko .team-name-wrapper:last-child .team-name-text { text-align: left; }
-.team-name-wrapper.third-place { opacity: 0.3; }
-.match .teams .vs-text,
-.knockout-match .teams-ko .vs-text { margin: 0 5px; }
-.score { font-weight: bold; font-family: monospace; }
-
-.qualified { background-color: #e6f4ea; }
-.eliminated { opacity: 0.6; background-color: #fce8e6; }
+.match-list
+    { margin-top: 15px; font-size: 0.85em; }
+.match
+    { display: flex; justify-content: space-around; padding: 5px; flex-direction: column; text-align: center; }
+.match .teams, .knockout-match .teams-ko
+    { display: flex; align-items: center; flex-wrap: wrap; }
+.match .teams .team-name-wrapper, .knockout-match .teams-ko .team-name-wrapper
+    { flex: 1; display: flex; align-items: center; overflow: hidden; }
+.team-name-text
+    { flex: 1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.match .teams .team-name-wrapper:first-child, .knockout-match .teams-ko .team-name-wrapper:first-child
+    { justify-content: flex-end; padding-right: 5px; }
+.match .teams .team-name-wrapper:first-child .team-name-text, .knockout-match .teams-ko .team-name-wrapper:first-child .team-name-text
+    { text-align: right; }
+.match .teams .team-name-wrapper:last-child, .knockout-match .teams-ko .team-name-wrapper:last-child
+    { justify-content: flex-start; padding-left: 5px; }
+.match .teams .team-name-wrapper:last-child .team-name-text, .knockout-match .teams-ko .team-name-wrapper:last-child .team-name-text
+    { text-align: left; }
+.team-name-wrapper.third-place
+    { opacity: 0.3; }
+.match .teams .vs-text, .knockout-match .teams-ko .vs-text
+    { margin: 0 5px; }
+.score
+    { font-weight: bold; font-family: monospace; }
+.qualified
+    { background-color: #e6f4ea; }
+.eliminated
+    { opacity: 0.6; background-color: #fce8e6; }
 
 .live-badge {
     background-color: #e74c3c;
@@ -99,7 +104,7 @@ td, th { padding: 10px; text-align: center; border-bottom: 1px solid #eee; }
 .round-column {
     display: flex;
     flex-direction: column;
-    min-width: 240px;
+    min-width: 290px;
     padding: 50px 0;
     position: relative;
     flex: 1;
@@ -115,9 +120,8 @@ td, th { padding: 10px; text-align: center; border-bottom: 1px solid #eee; }
     font-size: 1.1em;
     color: var(--primary-color);
     font-weight: 600;
-    text-transform: uppercase;
+    text-align: center;
     letter-spacing: 1px;
-    border-bottom: 2px solid #ddd;
     padding-bottom: 5px;
     margin: 0 10px;
 }

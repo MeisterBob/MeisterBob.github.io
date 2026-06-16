@@ -294,8 +294,8 @@ function renderKnockoutPhase() {
             const liveBadgeHtml = isLive ? `<span class="live-badge">LIVE</span>` : '';
 
             // Platzhalter wie "1. Gruppe A" durch echte Teamnamen ersetzen
-            const homeDisplay = resolveKnockoutTeam(m.home, rankings, qualifiedThirds, assignedThirds);
-            const awayDisplay = resolveKnockoutTeam(m.away, rankings, qualifiedThirds, assignedThirds);
+            const homeDisplay = resolveKnockoutTeam(m.home, rankings);
+            const awayDisplay = resolveKnockoutTeam(m.away, rankings);
 
             matchEl.innerHTML = `
                 <span class="teams-ko">
@@ -304,7 +304,7 @@ function renderKnockoutPhase() {
                         ${getFlagHtml(homeDisplay)}
                     </span>
                     ${isLive ? liveBadgeHtml : `<span class="vs-text">vs</span>`}
-                    <span class="team-name-wrapper ${m.away.startsWith("3") ? 'third-place' : ''}">
+                    <span class="team-name-wrapper">
                         ${getFlagHtml(awayDisplay)}
                         <span class="team-name-text">${awayDisplay}</span>
                     </span>
@@ -371,7 +371,7 @@ function isGroupFinished(groupName) {
 /**
  * Löst Platzhalter (z.B. "1A") in Teamnamen auf, wenn die Gruppe beendet ist
  */
-function resolveKnockoutTeam(name, rankings, qualifiedThirds = [], assignedThirds = new Set()) {
+function resolveKnockoutTeam(name, rankings) {
     if (!name || name === "TBD") return "TBD";
 
     const match = name.match(/^([12])\.\s+Gruppe\s+([A-L])$/) || name.match(/^([12])([A-L])$/);
@@ -382,20 +382,6 @@ function resolveKnockoutTeam(name, rankings, qualifiedThirds = [], assignedThird
             const team = rankings[group][rank - 1];
             if (!team) return name;
             return team.name;
-        }
-    }
-
-    const complexThirdMatch = name.match(/^3([A-L\/]+)$/i);
-    if (complexThirdMatch) {
-        const possibleGroups = complexThirdMatch[1].replace(/\//g, '').toUpperCase().split('');
-        const candidate = qualifiedThirds.find(t =>
-            possibleGroups.includes(t.group) &&
-            !assignedThirds.has(t.name)
-        );
-
-        if (candidate) {
-            assignedThirds.add(candidate.name);
-            return candidate.name;
         }
     }
 
