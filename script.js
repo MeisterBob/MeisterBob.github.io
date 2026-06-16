@@ -1,4 +1,28 @@
+const tournaments = {
+    wc2022: {
+        season: 255711,
+        title: 'FIFA World Cup 2022',
+        location: 'Qatar',
+        qualified_3rds: 0,
+    },
+    wwc2023: {
+        season: 285026,
+        title: 'FIFA Womens World Cup 2023',
+        location: 'Australia & New Zealand',
+        qualified_3rds: 0,
+    },
+    wc2026: {
+        season: 285023,
+        title: 'FIFA World Cup 2026',
+        location: 'USA, Mexico & Canada',
+        qualified_3rds: 8,
+    },
+}
+const matchUrl = (season) => `https://api.fifa.com/api/v3/calendar/matches?language=de&count=500&idSeason=${season}`;
+const watchUrl = (season) => `https://api.fifa.com/api/v3/watch/season/${season}?language=de`;
+
 let wmConfig = {
+    tournament: tournaments.wc2026,
     groups: {},
     matches: [],
     knockout: [],
@@ -6,12 +30,40 @@ let wmConfig = {
 };
 
 document.addEventListener('DOMContentLoaded', () => {
+    setupTournamentSelector();
     initApp();
 });
 
+function setupTournamentSelector() {
+    const selector = document.getElementById('tournament-selector');
+    if (!selector) return;
+
+    Object.entries(tournaments).forEach(([key, t]) => {
+        const option = document.createElement('option');
+        option.value = key;
+        option.textContent = t.title;
+        if (t === wmConfig.tournament) option.selected = true;
+        selector.appendChild(option);
+    });
+
+    selector.addEventListener('change', (e) => {
+        wmConfig.tournament = tournaments[e.target.value];
+        initApp();
+    });
+}
+
 async function initApp() {
     try {
-        const response = await fetch('https://api.fifa.com/api/v3/calendar/matches?language=de&count=500&idSeason=285023');
+        // State und UI zurücksetzen
+        wmConfig.teamFlags = {};
+        document.getElementById('groups-container').innerHTML = '';
+        document.getElementById('knockout-container').innerHTML = '';
+
+        // Header mit Turnierdaten aktualisieren
+        document.getElementById('tournament-title').textContent = wmConfig.tournament.title;
+        document.getElementById('tournament-location').textContent = wmConfig.tournament.location;
+
+        const response = await fetch(matchUrl(wmConfig.tournament.season));
         const data = await response.json();
         const results = data.Results || [];
 
@@ -64,7 +116,13 @@ async function initApp() {
         });
 
         renderGroupPhase();
-        renderBestThirds();
+        const thirdsSection = document.getElementById('best-thirds-container')?.closest('.section');
+        if (wmConfig.tournament.qualified_3rds > 0) {
+            if (thirdsSection) thirdsSection.style.display = 'block';
+            renderBestThirds();
+        } else {
+            if (thirdsSection) thirdsSection.style.display = 'none';
+        }
         renderKnockoutPhase();
         checkAutoCollapse();
     } catch (error) {
@@ -124,7 +182,7 @@ function renderGroupPhase() {
     const oneDayLater = new Date(now.getTime() + 24 * 60 * 60 * 1000);
 
     // Namen der aktuell 8 besten Gruppendritten für die Highlighting-Logik ermitteln
-    const qualifiedThirdNames = getThirdsRanking().slice(0, 8).map(t => t.name);
+    const qualifiedThirdNames = getThirdsRanking().slice(0, wmConfig.tournament.qualified_3rds).map(t => t.name);
 
     Object.keys(wmConfig.groups).sort().forEach(groupName => {
         const tableData = calculateTable(groupName);
@@ -211,7 +269,7 @@ function renderBestThirds() {
     thirds.forEach((t, index) => {
         const liveBadge = liveTeams.has(t.name) ? `<span class="live-badge">LIVE</span>` : '';
         html += `
-        <tr class="${(index < 8) ? 'qualified' : 'eliminated'}">
+        <tr class="${(index < wmConfig.tournament.qualified_3rds) ? 'qualified' : 'eliminated'}">
             <td>${index + 1}.</td>
             <td>${t.group}</td>
             <td class="team-name">${getFlagHtml(t.name)}${t.name} ${liveBadge}</td>
@@ -238,7 +296,7 @@ function renderKnockoutPhase() {
     }
 
     // Namen der aktuell 8 besten Gruppendritten für die KO-Logik
-    const qualifiedThirds = getThirdsRanking().slice(0, 8);
+    const qualifiedThirds = getThirdsRanking().slice(0, wmConfig.tournament.qualified_3rds);
     const assignedThirds = new Set();
 
     // Wir filtern Spiele ohne Gruppenzuordnung (K.o.-Spiele) aus den geladenen Daten
