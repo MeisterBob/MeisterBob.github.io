@@ -30,10 +30,11 @@ let wmConfig = {
 };
 
 const tvLogo = {
-    DasErste: 'https://extranets.fifa.com/TvStationPhotos/174.png',
-    ZDF: 'https://extranets.fifa.com/TvStationPhotos/292.png',
-    'FUSSBALL.TV 1': 'https://extranets.fifa.com/TvStationPhotos/170.png',
-    'FUSSBALL.TV 2': 'https://extranets.fifa.com/TvStationPhotos/170.png'
+    DasErste: 'ard.png',
+    ZDF: 'zdf.webp',
+    'FUSSBALL.TV 1': 'magenta.webp',
+    'FUSSBALL.TV 2': 'magenta.webp',
+    'FUSSBALL.TV 3': 'magenta.webp',
 };
 document.addEventListener('DOMContentLoaded', () => {
     setupTournamentSelector();
@@ -89,7 +90,7 @@ async function initApp() {
                                 });
 
                                 const tvLogosHtml = Array.from(uniqueBroadcasterKeys)
-                                    .map(key => tvLogo[key] ? `<img src="${tvLogo[key]}" alt="${key}" class="tv-logo">` : key)
+                                    .map(key => tvLogo[key] ? `<img src="${tvLogo[key]}" alt="${key}" class="tv-logo">` : null)
                                     .join('');
 
                                 if (tvLogosHtml) {
@@ -133,7 +134,8 @@ async function initApp() {
                 date: converted.date,
                 time: converted.time,
                 round: m.StageName?.[0]?.Description || "Vorrunde",
-                tv: matchIdToTv[m.IdMatch] || ""
+                // TV-Logos nur für anstehende (1) oder Live-Spiele (3) anzeigen
+                tv: (m.MatchStatus === 1 || m.MatchStatus === 3) ? (matchIdToTv[m.IdMatch] || "") : ""
             };
         });
 
