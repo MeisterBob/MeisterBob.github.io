@@ -1,28 +1,16 @@
-const tournaments = {
-    wc2022: {
-        season: 255711,
-        title: 'FIFA World Cup 2022',
-        location: 'Qatar',
-        qualified_3rds: 0,
-    },
-    wwc2023: {
-        season: 285026,
-        title: 'FIFA Womens World Cup 2023',
-        location: 'Australia & New Zealand',
-        qualified_3rds: 0,
-    },
-    wc2026: {
-        season: 285023,
-        title: 'FIFA World Cup 2026',
-        location: 'USA, Mexico & Canada',
-        qualified_3rds: 8,
-    },
-}
+const tournaments = [
+    { season: 255711, title: 'Weltmeisterschaft 2022',                      qualified_3rds: 0 },
+    { season: 285026, title: 'Frauen-Weltmeisterschaft 2023',               qualified_3rds: 0 },
+    { season: 285023, title: 'Weltmeisterschaft 2026',                      qualified_3rds: 8 },
+    { season: 292937, title: 'U-17 Weltmeisterschaft 2026',                 qualified_3rds: 8 },
+    { season: 291518, title: 'U-20-Frauen-Weltmeisterschaft',               qualified_3rds: 4 },
+    // { season: 292312, title: 'Qualifikation Frauen-Weltmeisterschaft 2027', qualified_3rds: 0 },
+]
 const matchUrl = (season) => `https://api.fifa.com/api/v3/calendar/matches?language=de&count=500&idSeason=${season}`;
-const watchUrl = (season) => `https://api.fifa.com/api/v3/watch/season/${season}?language=de&count=500`;
+const watchUrl = (season) => `https://api.fifa.com/api/v3/watch/season/${season}?count=500&language=de`;
 
 let wmConfig = {
-    tournament: tournaments.wc2026,
+    tournament: tournaments[2],
     groups: {},
     matches: [],
     knockout: [],
@@ -66,13 +54,12 @@ async function initApp() {
         document.getElementById('groups-container').innerHTML = '';
         document.getElementById('knockout-container').innerHTML = '';
 
-        // Header mit Turnierdaten aktualisieren
-        document.getElementById('tournament-title').textContent = wmConfig.tournament.title;
-        document.getElementById('tournament-location').textContent = wmConfig.tournament.location;
-
         const response = await fetch(matchUrl(wmConfig.tournament.season));
         const data = await response.json();
         const results = data.Results || [];
+
+        // Header mit Turnierdaten aktualisieren
+        document.getElementById('tournament-title').textContent = results[0].SeasonName[0].Description;
 
         // TV-Informationen (Broadcaster) abrufen
         let matchIdToTv = {};
@@ -344,10 +331,15 @@ function renderKnockoutPhase() {
 
     // Runden-Reihenfolge definieren
     const roundOrder = {
-        "Sechzehntelfinale": 1,
         "Round of 32": 1,
-        "Achtelfinale": 2,
         "Round of 16": 2,
+        "Quarter-final": 3,
+        "Semi-final": 4,
+        "Play-off for third place": 5,
+        "Final": 5,
+
+        "Sechzehntelfinale": 1,
+        "Achtelfinale": 2,
         "Viertelfinale": 3,
         "Halbfinale": 4,
         "Spiel um Platz drei": 5,
@@ -355,12 +347,13 @@ function renderKnockoutPhase() {
     };
 
     const uniqueOrders = [...new Set(koMatches.map(m => roundOrder[m.round] || 99))].sort((a, b) => a - b);
+    console.log(uniqueOrders);
 
     uniqueOrders.forEach(order => {
         const matchesInColumn = koMatches.filter(m => (roundOrder[m.round] || 99) === order);
         if (order === 5) {
             // Sortierung innerhalb der Spalte: Finale oben, Platz 3 unten
-            matchesInColumn.sort((a, b) => a.round === "Finale" ? -1 : 1);
+            matchesInColumn.sort((a, b) => (a.round === "Finale" || a.round === "Final") ? -1 : 1);
         }
 
         const roundDiv = document.createElement('div');
@@ -379,10 +372,10 @@ function renderKnockoutPhase() {
 
             const wrapper = document.createElement('div');
             wrapper.className = 'match-wrapper';
-            if (m.round === "Spiel um Platz drei") {
+            if (m.round === "Spiel um Platz drei" || m.round === "Play-off for third place") {
                 wrapper.classList.add('third-place-wrapper');
             }
-            if (m.round === "Finale") {
+            if (m.round === "Finale" || m.round === "Final") {
                 wrapper.classList.add('finale-wrapper');
             }
 

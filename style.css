@@ -16,6 +16,9 @@ body {
 header { text-align: center; margin-bottom: 40px; }
 
 #tournament-selector {
+    position: absolute;
+    top: 5px;
+    right: 5px;
     padding: 8px 12px;
     border-radius: 6px;
     border: 1px solid #ccc;
