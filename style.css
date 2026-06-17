@@ -58,7 +58,7 @@ td, th { padding: 10px; text-align: center; border-bottom: 1px solid #eee; }
 .match-list
     { margin-top: 15px; font-size: 0.85em; }
 .match
-    { display: flex; justify-content: space-around; padding: 5px; flex-direction: column; text-align: center; }
+    { display: flex; justify-content: space-around; padding: 5px; flex-direction: column; text-align: center; position: relative; }
 .match .teams, .knockout-match .teams-ko
     { display: flex; align-items: center; flex-wrap: wrap; }
 .match .teams .team-name-wrapper, .knockout-match .teams-ko .team-name-wrapper
@@ -77,6 +77,8 @@ td, th { padding: 10px; text-align: center; border-bottom: 1px solid #eee; }
     { opacity: 0.3; }
 .match .teams .vs-text, .knockout-match .teams-ko .vs-text
     { margin: 0 5px; }
+.MatchNumber
+    { color: lightgray; font-family: monospace; position: absolute; left: 5px; font-size: 0.8em; }
 .score
     { font-weight: bold; font-family: monospace; }
 .qualified

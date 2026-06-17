@@ -54,13 +54,6 @@ async function initApp() {
         document.getElementById('groups-container').innerHTML = '';
         document.getElementById('knockout-container').innerHTML = '';
 
-        const response = await fetch(matchUrl(wmConfig.tournament.season));
-        const data = await response.json();
-        const results = data.Results || [];
-
-        // Header mit Turnierdaten aktualisieren
-        document.getElementById('tournament-title').textContent = results[0].SeasonName[0].Description;
-
         // TV-Informationen (Broadcaster) abrufen
         let matchIdToTv = {};
         try {
@@ -90,6 +83,13 @@ async function initApp() {
             }
         } catch (e) { console.warn("Watch-Daten konnten nicht geladen werden.", e); }
 
+        // Spiele aus der FIFA-API laden
+        const response = await fetch(matchUrl(wmConfig.tournament.season));
+        const data = await response.json();
+        const results = data.Results || [];
+
+        // Header mit Turnierdaten aktualisieren
+        document.getElementById('tournament-title').textContent = results[0].SeasonName[0].Description;
 
         // Transformation der Spiele aus der FIFA-API
         wmConfig.matches = results.map(m => {
@@ -101,6 +101,12 @@ async function initApp() {
 
             const homeName = m.Home?.TeamName?.[0]?.Description || m.PlaceHolderA || "TBD";
             const awayName = m.Away?.TeamName?.[0]?.Description || m.PlaceHolderB || "TBD";
+
+            const extractMatchNum = (str) => {
+                if (typeof str !== 'string') return null;
+                const match = str.match(/(\d+)/);
+                return match ? parseInt(match[1]) : null;
+            };
 
             if (m.Home?.PictureUrl) {
                 const formattedUrl = m.Home.PictureUrl.replace('{format}', 'sq').replace('{size}', '1');
@@ -115,11 +121,14 @@ async function initApp() {
                 group: m.GroupName?.[0]?.Description ? m.GroupName[0].Description.split(' ').pop() : null,
                 home: homeName,
                 away: awayName,
+                MatchNumber: m.MatchNumber,
                 MatchStatus: m.MatchStatus,
                 scoreHome: m.HomeTeamScore,
                 scoreAway: m.AwayTeamScore,
                 date: converted.date,
                 time: converted.time,
+                parentMatchA: extractMatchNum(m.PlaceHolderA),
+                parentMatchB: extractMatchNum(m.PlaceHolderB),
                 round: m.StageName?.[0]?.Description || "Vorrunde",
                 // TV-Logos nur für anstehende (1) oder Live-Spiele (3) anzeigen
                 tv: (m.MatchStatus === 1 || m.MatchStatus === 3) ? (matchIdToTv[m.IdMatch] || "") : ""
@@ -269,6 +278,7 @@ function renderGroupPhase() {
                     <span class="time">${timeInfo}</span>
                 </div>
                 <span class="score">${sH}:${sA}</span>
+                <span class="MatchNumber">${m.MatchNumber}</span>
             </div>`;
         });
 
@@ -347,10 +357,36 @@ function renderKnockoutPhase() {
     };
 
     const uniqueOrders = [...new Set(koMatches.map(m => roundOrder[m.round] || 99))].sort((a, b) => a - b);
-    console.log(uniqueOrders);
+
+    // Create a lookup map and determine bracket order starting from the Final
+    const matchByNumber = new Map(koMatches.map(m => [m.MatchNumber, m]));
+    const bracketOrder = [];
+    const finalMatch = koMatches.find(m => m.round === "Finale" || m.round === "Final");
+    
+    if (finalMatch) {
+        const queue = [finalMatch];
+        while (queue.length > 0) {
+            const m = queue.shift();
+            if (!m) continue;
+            bracketOrder.push(m.MatchNumber);
+            // Add parents to queue: ParentA (top) then ParentB (bottom)
+            // This BFS approach ensures we discover matches round-by-round in visual order
+            if (m.parentMatchA) queue.push(matchByNumber.get(m.parentMatchA));
+            if (m.parentMatchB) queue.push(matchByNumber.get(m.parentMatchB));
+        }
+    }
 
     uniqueOrders.forEach(order => {
         const matchesInColumn = koMatches.filter(m => (roundOrder[m.round] || 99) === order);
+
+        // Sort matches based on their position in the bracket tree
+        matchesInColumn.sort((a, b) => {
+            const indexA = bracketOrder.indexOf(a.MatchNumber);
+            const indexB = bracketOrder.indexOf(b.MatchNumber);
+            // If not in bracket tree (like 3rd place), put at the end
+            return (indexA === -1 ? 999 : indexA) - (indexB === -1 ? 999 : indexB);
+        });
+
         if (order === 5) {
             // Sortierung innerhalb der Spalte: Finale oben, Platz 3 unten
             matchesInColumn.sort((a, b) => (a.round === "Finale" || a.round === "Final") ? -1 : 1);
@@ -402,7 +438,8 @@ function renderKnockoutPhase() {
                     </span>
                 </span>
                 ${timeInfo}
-                <span class="score">${m.scoreHome ?? (isLive ? 0 : '-')}:${m.scoreAway ?? (isLive ? 0 : '-')}</span>`;
+                <span class="score">${m.scoreHome ?? (isLive ? 0 : '-')}:${m.scoreAway ?? (isLive ? 0 : '-')}</span>
+                <span class="MatchNumber">${m.MatchNumber}</span>`;
 
             wrapper.appendChild(matchEl);
             roundDiv.appendChild(wrapper);
