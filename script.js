@@ -1,21 +1,25 @@
 const tournaments = [
-    { season: 255711, title: 'Weltmeisterschaft 2022',                      qualified_3rds: 0 },
-    { season: 285026, title: 'Frauen-Weltmeisterschaft 2023',               qualified_3rds: 0 },
-    { season: 285023, title: 'Weltmeisterschaft 2026',                      qualified_3rds: 8 },
-    { season: 292937, title: 'U-17 Weltmeisterschaft 2026',                 qualified_3rds: 8 },
-    { season: 291518, title: 'U-20-Frauen-Weltmeisterschaft',               qualified_3rds: 4 },
+    { season: 255711, title: 'Weltmeisterschaft 2022', qualified_3rds: 0 },
+    { season: 285026, title: 'Frauen-Weltmeisterschaft 2023', qualified_3rds: 0 },
+    { season: 285023, title: 'Weltmeisterschaft 2026', qualified_3rds: 8 },
+    { season: 292937, title: 'U-17 Weltmeisterschaft 2026', qualified_3rds: 8 },
+    { season: 291518, title: 'U-20-Frauen-Weltmeisterschaft', qualified_3rds: 4 },
     // { season: 292312, title: 'Qualifikation Frauen-Weltmeisterschaft 2027', qualified_3rds: 0 },
 ]
 const matchUrl = (season) => `https://api.fifa.com/api/v3/calendar/matches?language=de&count=500&idSeason=${season}`;
 const watchUrl = (season) => `https://api.fifa.com/api/v3/watch/season/${season}?count=500&language=de`;
+
+const flagCache = {};
 
 let wmConfig = {
     tournament: tournaments[2],
     groups: {},
     matches: [],
     knockout: [],
-    teamFlags: {}
+    teamFlags: {},
+    matchIdToTv: {}
 };
+let liveUpdateTimeout = null;
 let overallTableSort = { key: 'pts', dir: -1 };
 
 const tvLogo = {
@@ -48,51 +52,49 @@ function setupTournamentSelector() {
     });
 }
 
-async function initApp() {
+async function initApp(isLiveUpdate = false) {
+    if (liveUpdateTimeout) clearTimeout(liveUpdateTimeout);
+
     try {
-        // State und UI zurücksetzen
-        wmConfig.teamFlags = {};
-        document.getElementById('groups-container').innerHTML = '';
-        document.getElementById('knockout-container').innerHTML = '';
-
         // TV-Informationen (Broadcaster) abrufen
-        let matchIdToTv = {};
-        try {
-            const watchRes = await fetch(watchUrl(wmConfig.tournament.season));
-            if (watchRes.ok) {
-                const watchData = await watchRes.json();
-                if (watchData?.Results) {
-                    watchData.Results.forEach(wm => {
-                        if (wm.IdCountry === "GER") {
-                            wm.Matches.forEach(m => {
-                                const uniqueBroadcasterKeys = new Set();
-                                m.Sources.forEach(source => {
-                                    uniqueBroadcasterKeys.add(source.Name);
-                                });
+        if (!isLiveUpdate) {
+            wmConfig.matchIdToTv = {};
+            try {
+                const watchRes = await fetch(watchUrl(wmConfig.tournament.season));
+                if (watchRes.ok) {
+                    const watchData = await watchRes.json();
+                    if (watchData?.Results) {
+                        watchData.Results.forEach(wm => {
+                            if (wm.IdCountry === "GER") {
+                                wm.Matches.forEach(m => {
+                                    const uniqueBroadcasterKeys = new Set();
+                                    m.Sources.forEach(source => {
+                                        uniqueBroadcasterKeys.add(source.Name);
+                                    });
 
-                                const tvLogosHtml = Array.from(uniqueBroadcasterKeys)
-                                    .map(key => tvLogo[key] ? `<img src="${tvLogo[key]}" alt="${key}" class="tv-logo">` : null)
-                                    .join('');
+                                    const tvLogosHtml = Array.from(uniqueBroadcasterKeys)
+                                        .map(key => tvLogo[key] ? `<img src="${tvLogo[key]}" alt="${key}" class="tv-logo">` : null)
+                                        .join('');
 
-                                if (tvLogosHtml) {
-                                    matchIdToTv[m.IdMatch] = tvLogosHtml;
-                                }
-                            })
-                        }
-                    });
+                                    if (tvLogosHtml) {
+                                        wmConfig.matchIdToTv[m.IdMatch] = tvLogosHtml;
+                                    }
+                                })
+                            }
+                        });
+                    }
                 }
-            }
-        } catch (e) { console.warn("Watch-Daten konnten nicht geladen werden.", e); }
+            } catch (e) { console.warn("Watch-Daten konnten nicht geladen werden.", e); }
+        }
 
-        // Spiele aus der FIFA-API laden
         const response = await fetch(matchUrl(wmConfig.tournament.season));
         const data = await response.json();
         const results = data.Results || [];
 
-        // Header mit Turnierdaten aktualisieren
         document.getElementById('tournament-title').textContent = results[0].SeasonName[0].Description;
 
-        // Transformation der Spiele aus der FIFA-API
+        // Neue Daten verarbeiten — DOM bleibt bis hierher unverändert
+        wmConfig.teamFlags = {};
         wmConfig.matches = results.map(m => {
             // FIFA liefert UTC-Daten, wir extrahieren Datum und Zeit für convertToCEST
             const dateObj = new Date(m.Date);
@@ -110,12 +112,14 @@ async function initApp() {
             };
 
             if (m.Home?.PictureUrl) {
-                const formattedUrl = m.Home.PictureUrl.replace('{format}', 'sq').replace('{size}', '1');
-                wmConfig.teamFlags[homeName] = formattedUrl;
+                const url = m.Home.PictureUrl.replace('{format}', 'sq').replace('{size}', '1');
+                wmConfig.teamFlags[homeName] = url;
+                if (!flagCache[url]) { flagCache[url] = new Image(); flagCache[url].src = url; }
             }
             if (m.Away?.PictureUrl) {
-                const formattedUrl = m.Away.PictureUrl.replace('{format}', 'sq').replace('{size}', '1');
-                wmConfig.teamFlags[awayName] = formattedUrl;
+                const url = m.Away.PictureUrl.replace('{format}', 'sq').replace('{size}', '1');
+                wmConfig.teamFlags[awayName] = url;
+                if (!flagCache[url]) { flagCache[url] = new Image(); flagCache[url].src = url; }
             }
 
             return {
@@ -134,7 +138,7 @@ async function initApp() {
                 parentMatchB: extractMatchNum(m.PlaceHolderB),
                 round: m.StageName?.[0]?.Description || "Vorrunde",
                 // TV-Logos nur für anstehende (1) oder Live-Spiele (3) anzeigen
-                tv: (m.MatchStatus === 1 || m.MatchStatus === 3) ? (matchIdToTv[m.IdMatch] || "") : ""
+                tv: (m.MatchStatus === 1 || m.MatchStatus === 3) ? (wmConfig.matchIdToTv[m.IdMatch] || "") : ""
             };
         });
 
@@ -153,7 +157,14 @@ async function initApp() {
             }
         });
 
-        overallTableSort = { key: 'pts', dir: -1 };
+        // DOM erst jetzt leeren und neu befüllen — alle Daten sind bereit
+        document.getElementById('groups-container').innerHTML = '';
+        document.getElementById('knockout-container').innerHTML = '';
+
+        if (!isLiveUpdate) {
+            overallTableSort = { key: 'pts', dir: -1 };
+        }
+
         renderGroupPhase();
         const thirdsSection = document.getElementById('best-thirds-container')?.closest('.section');
         if (wmConfig.tournament.qualified_3rds > 0) {
@@ -164,7 +175,14 @@ async function initApp() {
         }
         renderKnockoutPhase();
         renderOverallTable();
-        checkAutoCollapse();
+
+        if (!isLiveUpdate) {
+            checkAutoCollapse();
+        }
+
+        if (wmConfig.matches.some(m => m.MatchStatus === 3)) {
+            liveUpdateTimeout = setTimeout(() => initApp(true), 60000);
+        }
     } catch (error) {
         console.error("Fehler beim Laden der WM-Daten:", error);
         document.getElementById('app').innerHTML = `<p style="text-align:center; color:red;">Daten konnten nicht geladen werden.</p>`;
