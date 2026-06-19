@@ -16,6 +16,7 @@ let wmConfig = {
     knockout: [],
     teamFlags: {}
 };
+let overallTableSort = { key: 'pts', dir: -1 };
 
 const tvLogo = {
     DasErste: 'ard.png',
@@ -125,6 +126,8 @@ async function initApp() {
                 MatchStatus: m.MatchStatus,
                 scoreHome: m.HomeTeamScore,
                 scoreAway: m.AwayTeamScore,
+                scoreHomePenalty: m.HomeTeamPenaltyScore,
+                scoreAwayPenalty: m.AwayTeamPenaltyScore,
                 date: converted.date,
                 time: converted.time,
                 parentMatchA: extractMatchNum(m.PlaceHolderA),
@@ -150,6 +153,7 @@ async function initApp() {
             }
         });
 
+        overallTableSort = { key: 'pts', dir: -1 };
         renderGroupPhase();
         const thirdsSection = document.getElementById('best-thirds-container')?.closest('.section');
         if (wmConfig.tournament.qualified_3rds > 0) {
@@ -159,6 +163,7 @@ async function initApp() {
             if (thirdsSection) thirdsSection.style.display = 'none';
         }
         renderKnockoutPhase();
+        renderOverallTable();
         checkAutoCollapse();
     } catch (error) {
         console.error("Fehler beim Laden der WM-Daten:", error);
@@ -253,8 +258,6 @@ function renderGroupPhase() {
 
         wmConfig.matches.filter(m => m.group === groupName).forEach(m => {
             const isLive = m.MatchStatus === 3;
-            const sH = m.scoreHome ?? (isLive ? 0 : '-');
-            const sA = m.scoreAway ?? (isLive ? 0 : '-');
             const tvBadge = m.tv ? `<span class="tv-info">${m.tv}</span>` : '';
             const timeInfo = m.date ? `<small style="display:block; color:#888; font-size:0.8em;">${m.date} ${m.time || ''} ${tvBadge}</small>` : '';
             const matchTime = parseCESTDateTime(m.date, m.time);
@@ -266,6 +269,7 @@ function renderGroupPhase() {
 
             // If live, the badge replaces 'vs'. Otherwise, 'vs' is shown.
             const separatorHtml = isLive ? liveBadgeHtml : `<span class="vs-text">vs</span>`;
+            const scoreHtml = m.MatchStatus === 1 ? '' : `<span class="score">${m.scoreHome ?? (isLive ? 0 : '-')}:${m.scoreAway ?? (isLive ? 0 : '-')}</span>`;
 
             html += `
             <div class="match ${todayClass}">
@@ -277,7 +281,7 @@ function renderGroupPhase() {
                     </span>
                     <span class="time">${timeInfo}</span>
                 </div>
-                <span class="score">${sH}:${sA}</span>
+                ${scoreHtml}
                 <span class="MatchNumber">${m.MatchNumber}</span>
             </div>`;
         });
@@ -301,7 +305,7 @@ function renderBestThirds() {
         }
     });
 
-    let html = `<table><thead><tr><th>#</th><th>Gruppe</th><th>Team</th><th>S</th><th>U</th><th>N</th><th>Tore</th><th>Diff</th><th>Pkt</th></tr></thead><tbody>`;
+    let html = `<table><thead><tr><th>#</th><th>Gruppe</th><th>Team</th><th>Sp</th><th>S</th><th>U</th><th>N</th><th>Tore</th><th>Diff</th><th>Pkt</th></tr></thead><tbody>`;
 
     thirds.forEach((t, index) => {
         const liveBadge = liveTeams.has(t.name) ? `<span class="live-badge">LIVE</span>` : '';
@@ -310,6 +314,7 @@ function renderBestThirds() {
             <td>${index + 1}.</td>
             <td>${t.group}</td>
             <td class="team-name">${getFlagHtml(t.name)}${t.name} ${liveBadge}</td>
+            <td>${t.won + t.drawn + t.lost}</td>
             <td>${t.won}</td>
             <td>${t.drawn}</td>
             <td>${t.lost}</td>
@@ -362,7 +367,7 @@ function renderKnockoutPhase() {
     const matchByNumber = new Map(koMatches.map(m => [m.MatchNumber, m]));
     const bracketOrder = [];
     const finalMatch = koMatches.find(m => m.round === "Finale" || m.round === "Final");
-    
+
     if (finalMatch) {
         const queue = [finalMatch];
         while (queue.length > 0) {
@@ -425,6 +430,11 @@ function renderKnockoutPhase() {
             const homeDisplay = resolveKnockoutTeam(m.home, rankings);
             const awayDisplay = resolveKnockoutTeam(m.away, rankings);
 
+            let score = `${m.scoreHome ?? (isLive ? 0 : '-')}:${m.scoreAway ?? (isLive ? 0 : '-')}`;
+            if (m.scoreHomePenalty + m.scoreAwayPenalty > 0)
+                score += ' (' + m.scoreHomePenalty + ':' + m.scoreAwayPenalty + ')';
+            const scoreHtml = m.MatchStatus === 1 ? '' : `<span class="score">${score}</span>`;
+
             matchEl.innerHTML = `
                 <span class="teams-ko">
                     <span class="team-name-wrapper ${m.home.startsWith("3") ? 'third-place' : ''}">
@@ -438,7 +448,7 @@ function renderKnockoutPhase() {
                     </span>
                 </span>
                 ${timeInfo}
-                <span class="score">${m.scoreHome ?? (isLive ? 0 : '-')}:${m.scoreAway ?? (isLive ? 0 : '-')}</span>
+                ${scoreHtml}
                 <span class="MatchNumber">${m.MatchNumber}</span>`;
 
             wrapper.appendChild(matchEl);
@@ -490,14 +500,6 @@ function checkAutoCollapse() {
 }
 
 /**
- * Prüft, ob alle Gruppenspiele abgeschlossen sind
- */
-function isGroupFinished(groupName) {
-    const groupMatches = wmConfig.matches.filter(m => m.group === groupName);
-    return groupMatches.length > 0 && groupMatches.every(m => m.scoreHome !== null);
-}
-
-/**
  * Löst Platzhalter (z.B. "1A") in Teamnamen auf, wenn die Gruppe beendet ist
  */
 function resolveKnockoutTeam(name, rankings) {
@@ -533,14 +535,126 @@ function parseCESTDateTime(dateStr, timeStr) {
     return new Date(year, month - 1, day, hours, minutes);
 }
 
-/**
- * Prüft, ob ein Spiel basierend auf seiner Anstoßzeit "live" ist (innerhalb der letzten 2 Stunden gestartet).
- */
-function isMatchLive(matchDateStr, matchTimeStr, currentTime) {
-    const matchStartTime = parseCESTDateTime(matchDateStr, matchTimeStr);
-    if (!matchStartTime) return false;
-    const twoHoursAgo = new Date(currentTime.getTime() - (2 * 60 * 60 * 1000));
-    return matchStartTime > twoHoursAgo && matchStartTime <= currentTime;
+function renderOverallTable() {
+    const container = document.getElementById('table-container');
+    if (!container) return;
+
+    const teamStats = {};
+    const getOrCreate = (name) => {
+        if (!teamStats[name]) {
+            teamStats[name] = { name, matches: 0, won: 0, drawn: 0, lost: 0, goalsFor: 0, goalsAgainst: 0, diff: 0, pts: 0 };
+        }
+        return teamStats[name];
+    };
+
+    wmConfig.matches.forEach(m => {
+        if (m.scoreHome === null || m.scoreAway === null) return;
+        if (!m.home || !m.away || m.home === 'TBD' || m.away === 'TBD') return;
+        if (m.home.includes('Gruppe') || m.away.includes('Gruppe')) return;
+
+        const home = getOrCreate(m.home);
+        const away = getOrCreate(m.away);
+
+        home.matches++; away.matches++;
+        home.goalsFor += m.scoreHome; home.goalsAgainst += m.scoreAway;
+        away.goalsFor += m.scoreAway; away.goalsAgainst += m.scoreHome;
+
+        const hasPenalties = ((m.scoreHomePenalty ?? 0) + (m.scoreAwayPenalty ?? 0)) > 0;
+
+        if (m.scoreHome > m.scoreAway) {
+            home.won++; home.pts += 3; away.lost++;
+        } else if (m.scoreHome < m.scoreAway) {
+            away.won++; away.pts += 3; home.lost++;
+        } else if (hasPenalties) {
+            if ((m.scoreHomePenalty ?? 0) > (m.scoreAwayPenalty ?? 0)) {
+                home.won++; home.pts += 3; away.lost++;
+            } else {
+                away.won++; away.pts += 3; home.lost++;
+            }
+        } else {
+            home.drawn++; home.pts += 1;
+            away.drawn++; away.pts += 1;
+        }
+
+        home.diff = home.goalsFor - home.goalsAgainst;
+        away.diff = away.goalsFor - away.goalsAgainst;
+    });
+
+    const data = Object.values(teamStats).map(t => ({
+        ...t,
+        ppg: t.matches > 0 ? t.pts / t.matches : 0
+    }));
+
+    const { key, dir } = overallTableSort;
+    data.sort((a, b) => {
+        const va = a[key], vb = b[key];
+        if (typeof va === 'string') return dir * va.localeCompare(vb, 'de');
+        if (va !== vb)
+            return dir * (va - vb);
+        if (a['pts'] !== b['pts'])
+            return dir * (a['pts'] - b['pts']);
+        if (a['diff'] !== b['diff'])
+            return dir * (a['diff'] - b['diff']);
+        if (a['goalsFor'] !== b['goalsFor'])
+            return dir * (a['goalsFor'] - b['goalsFor']);
+        if (a['won'] !== b['won'])
+            return dir * (a['won'] - b['won']);
+        if (a['drawn'] !== b['drawn'])
+            return dir * (a['drawn'] - b['drawn']);
+        if (a['lost'] !== b['lost'])
+            return -dir * (a['lost'] - b['lost']);
+        if (a['matches'] !== b['matches'])
+            return -dir * (a['matches'] - b['matches']);
+    });
+
+    const columns = [
+        { key: 'name', label: 'Team', defaultDir: 1 },
+        { key: 'matches', label: 'Sp', defaultDir: -1 },
+        { key: 'won', label: 'S', defaultDir: -1 },
+        { key: 'drawn', label: 'U', defaultDir: -1 },
+        { key: 'lost', label: 'N', defaultDir: -1 },
+        { key: 'goalsFor', label: 'Tore', defaultDir: -1 },
+        { key: 'diff', label: 'Diff', defaultDir: -1 },
+        { key: 'pts', label: 'Pkt', defaultDir: -1 },
+        { key: 'ppg', label: 'Pkt/Sp', defaultDir: -1 },
+    ];
+
+    let thead = `<thead><tr>`;
+    columns.forEach(col => {
+        const isActive = overallTableSort.key === col.key;
+        const arrow = isActive ? (overallTableSort.dir === -1 ? ' ▼' : ' ▲') : '';
+        thead += `<th style="cursor:pointer;" onclick="sortOverallTable('${col.key}', ${col.defaultDir})">${col.label}${arrow}</th>`;
+    });
+    thead += `</tr></thead>`;
+
+    let tbody = `<tbody>`;
+    data.forEach((t, i) => {
+        const diffStr = t.diff > 0 ? `+${t.diff}` : `${t.diff}`;
+        tbody += `<tr>
+            <td class="team-name">${getFlagHtml(t.name)}${t.name}</td>
+            <td>${t.matches}</td>
+            <td>${t.won}</td>
+            <td>${t.drawn}</td>
+            <td>${t.lost}</td>
+            <td>${t.goalsFor}:${t.goalsAgainst}</td>
+            <td>${diffStr}</td>
+            <td>${t.pts}</td>
+            <td>${t.ppg.toFixed(2)}</td>
+        </tr>`;
+    });
+    tbody += `</tbody>`;
+
+    container.innerHTML = `<div class="group-card"><table>${thead}${tbody}</table></div>`;
+}
+
+function sortOverallTable(key, defaultDir) {
+    if (overallTableSort.key === key) {
+        overallTableSort.dir *= -1;
+    } else {
+        overallTableSort.key = key;
+        overallTableSort.dir = defaultDir;
+    }
+    renderOverallTable();
 }
 
 function convertToCEST(dateStr, timeStr, timezoneStr) {
