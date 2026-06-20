@@ -1,18 +1,25 @@
-const tournaments = [
-    { season: 255711, title: 'Weltmeisterschaft 2022', qualified_3rds: 0 },
-    { season: 285026, title: 'Frauen-Weltmeisterschaft 2023', qualified_3rds: 0 },
-    { season: 285023, title: 'Weltmeisterschaft 2026', qualified_3rds: 8 },
-    { season: 292937, title: 'U-17 Weltmeisterschaft 2026', qualified_3rds: 8 },
-    { season: 291518, title: 'U-20-Frauen-Weltmeisterschaft', qualified_3rds: 4 },
-    // { season: 292312, title: 'Qualifikation Frauen-Weltmeisterschaft 2027', qualified_3rds: 0 },
-]
+const competitionsUrl = "https://api.fifa.com/api/v3/competitions?count=500";
+const seasonsUrl = (competition) => `https://api.fifa.com/api/v3/seasons?IdCompetition=${competition}&language=de`;
 const matchUrl = (season) => `https://api.fifa.com/api/v3/calendar/matches?language=de&count=500&idSeason=${season}`;
 const watchUrl = (season) => `https://api.fifa.com/api/v3/watch/season/${season}?count=500&language=de`;
+
+const competitions = {
+    17: "FIFA Fussball Weltmeisterschaft",
+    103: "FIFA Frauen Weltmeisterschaft",
+    // 104: "FIFA U-20 Fussball Weltmeisterschaft",
+    // 2000001032: "UEFA Champions League"
+}
+const qualified3rds = (teams) => {
+    if (!teams || teams % 4 !== 0) return 0;
+    const directQualifiers = (teams / 4) * 2;
+    return Math.pow(2, Math.ceil(Math.log2(directQualifiers))) - directQualifiers;
+};
+let tournaments = [];
 
 const flagCache = {};
 
 let wmConfig = {
-    tournament: tournaments[2],
+    tournament: null,
     groups: {},
     matches: [],
     knockout: [],
@@ -29,21 +36,61 @@ const tvLogo = {
     'FUSSBALL.TV 2': 'magenta.webp',
     'FUSSBALL.TV 3': 'magenta.webp',
 };
-document.addEventListener('DOMContentLoaded', () => {
+document.addEventListener('DOMContentLoaded', async () => {
+    await loadTournaments();
     setupTournamentSelector();
     initApp();
 });
+
+async function loadTournaments() {
+    try {
+        const responses = await Promise.all(Object.keys(competitions).map(id => fetch(seasonsUrl(id))));
+        const jsons = await Promise.all(responses.map(r => r.ok ? r.json() : Promise.resolve({ Results: [] })));
+        const compIds = Object.keys(competitions);
+        tournaments = jsons.flatMap((data, i) => {
+            const competition = competitions[compIds[i]];
+            return (data.Results || []).map(s => ({
+                season: s.IdSeason,
+                title: s.Name?.[0]?.Description || s.SeasonName?.[0]?.Description || String(s.IdSeason),
+                competition,
+                teams: s.IdMemberAssociation?.length || 0,
+                qualified_3rds: qualified3rds(s.IdMemberAssociation?.length || 0),
+            }));
+        });
+    } catch (e) {
+        console.warn("Seasons konnten nicht geladen werden, verwende Standardliste.", e);
+        tournaments = [
+            { season: 285023, title: 'Weltmeisterschaft 2026', competition: 'Weltmeisterschaft', teams: 48, qualified_3rds: qualified3rds(48) },
+            { season: 292937, title: 'U-17 Weltmeisterschaft 2026', competition: 'Weltmeisterschaft', teams: 48, qualified_3rds: qualified3rds(48) },
+            { season: 291518, title: 'U-20-Frauen-Weltmeisterschaft', competition: 'Frauen Weltmeisterschaft', teams: 24, qualified_3rds: qualified3rds(24) },
+            { season: 285026, title: 'Frauen-Weltmeisterschaft 2023', competition: 'Frauen Weltmeisterschaft', teams: 32, qualified_3rds: qualified3rds(32) },
+            { season: 255711, title: 'Weltmeisterschaft 2022', competition: 'Weltmeisterschaft', teams: 32, qualified_3rds: qualified3rds(32) },
+        ];
+    }
+    wmConfig.tournament = tournaments.find(t => t.season === 285023) || tournaments[0];
+}
 
 function setupTournamentSelector() {
     const selector = document.getElementById('tournament-selector');
     if (!selector) return;
 
-    Object.entries(tournaments).forEach(([key, t]) => {
-        const option = document.createElement('option');
-        option.value = key;
-        option.textContent = t.title;
-        if (t === wmConfig.tournament) option.selected = true;
-        selector.appendChild(option);
+    const groups = {};
+    tournaments.forEach((t, key) => {
+        if (!groups[t.competition]) groups[t.competition] = [];
+        groups[t.competition].push({ key, t });
+    });
+
+    Object.entries(groups).forEach(([compName, items]) => {
+        const optgroup = document.createElement('optgroup');
+        optgroup.label = compName;
+        items.forEach(({ key, t }) => {
+            const option = document.createElement('option');
+            option.value = key;
+            option.textContent = t.title;
+            if (t === wmConfig.tournament) option.selected = true;
+            optgroup.appendChild(option);
+        });
+        selector.appendChild(optgroup);
     });
 
     selector.addEventListener('change', (e) => {
@@ -91,7 +138,7 @@ async function initApp(isLiveUpdate = false) {
         const data = await response.json();
         const results = data.Results || [];
 
-        document.getElementById('tournament-title').textContent = results[0].SeasonName[0].Description;
+        document.getElementById('tournament-title').textContent = results[0]?.SeasonName?.[0]?.Description || results[0]?.CompetitionName?.[0]?.Description || wmConfig.tournament.title || "Turnier";
 
         // Neue Daten verarbeiten — DOM bleibt bis hierher unverändert
         wmConfig.teamFlags = {};
@@ -185,7 +232,10 @@ async function initApp(isLiveUpdate = false) {
         }
     } catch (error) {
         console.error("Fehler beim Laden der WM-Daten:", error);
-        document.getElementById('app').innerHTML = `<p style="text-align:center; color:red;">Daten konnten nicht geladen werden.</p>`;
+        document.getElementById('groups-container').innerHTML = 'Fehler beim Laden der WM-Daten';
+        document.getElementById('best-thirds-container').innerHTML = '';
+        document.getElementById('knockout-container').innerHTML = '';
+        document.getElementById('knockout-container').innerHTML = '';
     }
 }
 
@@ -364,19 +414,23 @@ function renderKnockoutPhase() {
 
     // Runden-Reihenfolge definieren
     const roundOrder = {
-        "Round of 32": 1,
-        "Round of 16": 2,
-        "Quarter-final": 3,
-        "Semi-final": 4,
-        "Play-off for third place": 5,
-        "Final": 5,
+        "Round of 32": 2,
+        "Round of 16": 4,
+        "Quarter-final": 5,
+        "Semi-final": 5,
+        "Play-off for third place": 6,
+        "Final": 6,
 
-        "Sechzehntelfinale": 1,
-        "Achtelfinale": 2,
-        "Viertelfinale": 3,
-        "Halbfinale": 4,
-        "Spiel um Platz drei": 5,
-        "Finale": 5,
+        "1. Qualifikationsrunde": 1,
+        "Sechzehntelfinale": 2,
+        "1. Runde": 3,
+        "Vorrunde": 3,
+        "Achtelfinale": 3,
+        "Viertelfinale": 4,
+        "Halbfinale": 5,
+        "Spiel um Platz drei": 6,
+        "Finale": 6,
+        "Finalrunde": 6,
     };
 
     const uniqueOrders = [...new Set(koMatches.map(m => roundOrder[m.round] || 99))].sort((a, b) => a - b);
