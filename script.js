@@ -4,8 +4,10 @@ const matchUrl = (season) => `https://api.fifa.com/api/v3/calendar/matches?langu
 const watchUrl = (season) => `https://api.fifa.com/api/v3/watch/season/${season}?count=500&language=de`;
 
 const competitions = {
-    17: "FIFA Fussball Weltmeisterschaft",
-    103: "FIFA Frauen Weltmeisterschaft",
+    17: "FIFA Fussball-Weltmeisterschaft",
+    103: "FIFA Frauen-Weltmeisterschaft",
+    "8tddm56zbasf57jkkay4kbf11": "Europameisterschaft",
+    // 2000000019 : "Bundesliga",
     // 104: "FIFA U-20 Fussball Weltmeisterschaft",
     // 2000001032: "UEFA Champions League"
 }
@@ -49,13 +51,18 @@ async function loadTournaments() {
         const compIds = Object.keys(competitions);
         tournaments = jsons.flatMap((data, i) => {
             const competition = competitions[compIds[i]];
-            return (data.Results || []).map(s => ({
-                season: s.IdSeason,
-                title: s.Name?.[0]?.Description || s.SeasonName?.[0]?.Description || String(s.IdSeason),
-                competition,
-                teams: s.IdMemberAssociation?.length || 0,
-                qualified_3rds: qualified3rds(s.IdMemberAssociation?.length || 0),
-            }));
+            return (data.Results || []).map(s => {
+                const raw = (s.Name?.[0]?.Description || s.SeasonName?.[0]?.Description || String(s.IdSeason)).replace('™', '');
+                const norm = s => s.normalize('NFC').replace(/[  ‐-―−]/g, '-');
+                const normRaw = norm(raw), normComp = norm(competition);
+                return {
+                    season: s.IdSeason,
+                    title: normRaw.startsWith(normComp) ? raw.slice(normComp.length).trimStart() : raw,
+                    competition,
+                    teams: s.IdMemberAssociation?.length || 0,
+                    qualified_3rds: qualified3rds(s.IdMemberAssociation?.length || 0),
+                };
+            });
         });
     } catch (e) {
         console.warn("Seasons konnten nicht geladen werden, verwende Standardliste.", e);
@@ -138,7 +145,7 @@ async function initApp(isLiveUpdate = false) {
         const data = await response.json();
         const results = data.Results || [];
 
-        document.getElementById('tournament-title').textContent = results[0]?.SeasonName?.[0]?.Description || results[0]?.CompetitionName?.[0]?.Description || wmConfig.tournament.title || "Turnier";
+        document.getElementById('tournament-title').textContent = (results[0]?.SeasonName?.[0]?.Description || results[0]?.CompetitionName?.[0]?.Description || wmConfig.tournament.title || "Turnier").replace('™', '');
 
         // Neue Daten verarbeiten — DOM bleibt bis hierher unverändert
         wmConfig.teamFlags = {};
@@ -350,7 +357,7 @@ function renderGroupPhase() {
                     <span class="time">${timeInfo}</span>
                 </div>
                 ${scoreHtml}
-                <span class="MatchNumber">${m.MatchNumber}</span>
+                <span class="MatchNumber">${m.MatchNumber || ''}</span>
             </div>`;
         });
 
@@ -521,7 +528,7 @@ function renderKnockoutPhase() {
                 </span>
                 ${timeInfo}
                 ${scoreHtml}
-                <span class="MatchNumber">${m.MatchNumber}</span>`;
+                <span class="MatchNumber">${m.MatchNumber || ''}</span>`;
 
             wrapper.appendChild(matchEl);
             roundDiv.appendChild(wrapper);

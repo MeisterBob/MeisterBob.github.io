@@ -205,7 +205,7 @@ td, th { padding: 10px; text-align: center; border-bottom: 1px solid #eee; }
     z-index: 1;
 }
 
-.match-wrapper.finale-wrapper { align-items: flex-end; }
+.match-wrapper.finale-wrapper { align-items: flex-end; max-height: 50%; }
 .finale-wrapper::before { top: 94%; }
 .match-wrapper.third-place-wrapper { margin-top: 1em; align-items: flex-start; }
 .round-column:first-child .match-wrapper::before { display: none; }
