@@ -517,13 +517,13 @@ function renderKnockoutPhase() {
             matchEl.innerHTML = `
                 <span class="teams-ko">
                     <span class="team-name-wrapper ${m.home.startsWith("3") ? 'third-place' : ''}">
-                        <span class="team-name-text">${homeDisplay}</span>
-                        ${getFlagHtml(homeDisplay)}
+                        <span class="team-name-text${homeDisplay[1] ? ' team-name-fixed' : ''}">${homeDisplay[0]}</span>
+                        ${getFlagHtml(homeDisplay[0])}
                     </span>
                     ${isLive ? liveBadgeHtml : `<span class="vs-text">vs</span>`}
                     <span class="team-name-wrapper">
-                        ${getFlagHtml(awayDisplay)}
-                        <span class="team-name-text">${awayDisplay}</span>
+                        ${getFlagHtml(awayDisplay[0])}
+                        <span class="team-name-text${awayDisplay[1] ? ' team-name-fixed' : ''}">${awayDisplay[0]}</span>
                     </span>
                 </span>
                 ${timeInfo}
@@ -582,7 +582,7 @@ function checkAutoCollapse() {
  * Löst Platzhalter (z.B. "1A") in Teamnamen auf, wenn die Gruppe beendet ist
  */
 function resolveKnockoutTeam(name, rankings) {
-    if (!name || name === "TBD") return "TBD";
+    if (!name || name === "TBD") return ["TBD", true];
 
     const match = name.match(/^([12])\.\s+Gruppe\s+([A-L])$/) || name.match(/^([12])([A-L])$/);
     if (match) {
@@ -590,12 +590,12 @@ function resolveKnockoutTeam(name, rankings) {
         const group = match[2];
         if (rankings[group]) {
             const team = rankings[group][rank - 1];
-            if (!team) return name;
-            return team.name;
+            if (!team) return [name, true];
+            return [team.name, false];
         }
     }
 
-    return name;
+    return [name, true];
 }
 
 /**
@@ -698,7 +698,7 @@ function renderOverallTable() {
         { key: 'ppg', label: 'Pkt/Sp', defaultDir: -1 },
     ];
 
-    let thead = `<thead><tr>`;
+    let thead = `<thead><tr><th>#</th>`;
     columns.forEach(col => {
         const isActive = overallTableSort.key === col.key;
         const arrow = isActive ? (overallTableSort.dir === -1 ? ' ▼' : ' ▲') : '';
@@ -710,6 +710,7 @@ function renderOverallTable() {
     data.forEach((t, i) => {
         const diffStr = t.diff > 0 ? `+${t.diff}` : `${t.diff}`;
         tbody += `<tr>
+            <td>${i + 1}</td>
             <td class="team-name">${getFlagHtml(t.name)}${t.name}</td>
             <td>${t.matches}</td>
             <td>${t.won}</td>

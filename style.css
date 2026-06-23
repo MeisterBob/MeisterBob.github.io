@@ -77,6 +77,10 @@ td, th { padding: 10px; text-align: center; border-bottom: 1px solid #eee; }
     { opacity: 0.3; }
 .match .teams .vs-text, .knockout-match .teams-ko .vs-text
     { margin: 0 5px; }
+.knockout-match .team-name-text
+    { color: darkgray; }
+.knockout-match .team-name-fixed
+    { color: black; }
 .MatchNumber
     { color: lightgray; font-family: monospace; position: absolute; left: 5px; font-size: 0.8em; }
 .score
