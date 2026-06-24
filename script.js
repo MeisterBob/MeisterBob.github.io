@@ -190,6 +190,8 @@ async function initApp(isLiveUpdate = false) {
                 time: converted.time,
                 parentMatchA: extractMatchNum(m.PlaceHolderA),
                 parentMatchB: extractMatchNum(m.PlaceHolderB),
+                PlaceHolderA: m.PlaceHolderA,
+                PlaceHolderB: m.PlaceHolderB,
                 round: m.StageName?.[0]?.Description || "Vorrunde",
                 // TV-Logos nur für anstehende (1) oder Live-Spiele (3) anzeigen
                 tv: (m.MatchStatus === 1 || m.MatchStatus === 3) ? (wmConfig.matchIdToTv[m.IdMatch] || "") : ""
@@ -414,7 +416,23 @@ function renderKnockoutPhase() {
 
     // Namen der aktuell 8 besten Gruppendritten für die KO-Logik
     const qualifiedThirds = getThirdsRanking().slice(0, wmConfig.tournament.qualified_3rds);
-    const assignedThirds = new Set();
+
+    // Find which Annexe C combination applies and build slot → team map
+    const thirdSlotMap = {};
+    if (typeof BEST_THIRDS_COMBINATIONS !== 'undefined' && qualifiedThirds.length === 8) {
+        const qualifiedGroups = new Set(qualifiedThirds.map(t => t.group));
+        const slots = ["1A", "1B", "1D", "1E", "1G", "1I", "1K", "1L"];
+        const combination = BEST_THIRDS_COMBINATIONS.find(row =>
+            slots.every(s => qualifiedGroups.has(row[s].slice(1)))
+        );
+        if (combination) {
+            slots.forEach(slot => {
+                const group = combination[slot].slice(1);
+                const team = rankings[group]?.[2];
+                if (team) thirdSlotMap[slot] = team.name;
+            });
+        }
+    }
 
     // Wir filtern Spiele ohne Gruppenzuordnung (K.o.-Spiele) aus den geladenen Daten
     const koMatches = wmConfig.matches.filter(m => !m.group);
@@ -506,8 +524,7 @@ function renderKnockoutPhase() {
             const liveBadgeHtml = isLive ? `<span class="live-badge">LIVE</span>` : '';
 
             // Platzhalter wie "1. Gruppe A" durch echte Teamnamen ersetzen
-            const homeDisplay = resolveKnockoutTeam(m.home, rankings);
-            const awayDisplay = resolveKnockoutTeam(m.away, rankings);
+            const [homeDisplay, awayDisplay] = resolveKnockoutTeam(m, rankings, thirdSlotMap);
 
             let score = `${m.scoreHome ?? (isLive ? 0 : '-')}:${m.scoreAway ?? (isLive ? 0 : '-')}`;
             if (m.scoreHomePenalty + m.scoreAwayPenalty > 0)
@@ -579,23 +596,38 @@ function checkAutoCollapse() {
 }
 
 /**
- * Löst Platzhalter (z.B. "1A") in Teamnamen auf, wenn die Gruppe beendet ist
+ * Löst Platzhalter (z.B. "1A", "3E") in Teamnamen auf.
+ * Gibt ein Tupel [[homeLabel, homeFixed], [awayLabel, awayFixed]] zurück.
  */
-function resolveKnockoutTeam(name, rankings) {
-    if (!name || name === "TBD") return ["TBD", true];
+function resolveKnockoutTeam(match, rankings, thirdSlotMap = {}) {
+    const resolveOne = (name, otherName) => {
+        if (!name || name === "TBD") return ["TBD", true];
 
-    const match = name.match(/^([12])\.\s+Gruppe\s+([A-L])$/) || name.match(/^([12])([A-L])$/);
-    if (match) {
-        const rank = parseInt(match[1]);
-        const group = match[2];
-        if (rankings[group]) {
-            const team = rankings[group][rank - 1];
-            if (!team) return [name, true];
-            return [team.name, false];
+        // Third-place placeholder: identify the match slot via the opponent ("1A", "2B", …)
+        if (/^3[A-L]{1,5}$/.test(name)) {
+            const slotMatch = otherName?.match(/^([12][A-L])$/);
+            if (slotMatch) {
+                const team = thirdSlotMap[slotMatch[0]];
+                return team ? [team, false] : [name, true];
+            }
+            return [name, true];
         }
-    }
 
-    return [name, true];
+        const m = name.match(/^([12])\.\s+Gruppe\s+([A-L])$/) || name.match(/^([12])([A-L])$/);
+        if (m) {
+            const rank = parseInt(m[1]);
+            const group = m[2];
+            if (rankings[group]) {
+                const team = rankings[group][rank - 1];
+                if (!team) return [name, true];
+                return [team.name, false];
+            }
+        }
+
+        return [name, true];
+    };
+
+    return [resolveOne(match.home, match.PlaceHolderB), resolveOne(match.away, match.PlaceHolderA)];
 }
 
 /**
