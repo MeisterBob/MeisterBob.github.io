@@ -18,7 +18,46 @@ const qualified3rds = (teams) => {
 };
 let tournaments = [];
 
-const flagCache = {};
+const FIFA_TO_ISO2 = {
+    AFG: 'AF', ALB: 'AL', ALG: 'DZ', AND: 'AD', ANG: 'AO', ANT: 'AG', ARG: 'AR', ARM: 'AM',
+    ARU: 'AW', ASA: 'AS', AUS: 'AU', AUT: 'AT', AZE: 'AZ', BAH: 'BS', BAN: 'BD', BDI: 'BI',
+    BEL: 'BE', BEN: 'BJ', BER: 'BM', BHU: 'BT', BIH: 'BA', BLR: 'BY', BLZ: 'BZ', BOL: 'BO',
+    BOT: 'BW', BRA: 'BR', BRB: 'BB', BRU: 'BN', BUL: 'BG', BUR: 'BF', CAM: 'KH', CAN: 'CA',
+    CAY: 'KY', CGO: 'CG', CHA: 'TD', CHI: 'CL', CHN: 'CN', CIV: 'CI', CMR: 'CM', COD: 'CD',
+    COL: 'CO', COM: 'KM', CPV: 'CV', CRC: 'CR', CRO: 'HR', CUB: 'CU', CUR: 'CW', CYP: 'CY',
+    CZE: 'CZ', DEN: 'DK', DJI: 'DJ', DMA: 'DM', DOM: 'DO', ECU: 'EC', EGY: 'EG', EQG: 'GQ',
+    ERI: 'ER', ESP: 'ES', EST: 'EE', ETH: 'ET', FIJ: 'FJ', FIN: 'FI', FRA: 'FR', FRO: 'FO',
+    GAB: 'GA', GAM: 'GM', GEO: 'GE', GER: 'DE', GHA: 'GH', GNB: 'GW', GRE: 'GR', GRN: 'GD',
+    GTM: 'GT', GUI: 'GN', GUM: 'GU', GUY: 'GY', HAI: 'HT', HON: 'HN', HUN: 'HU', IDN: 'ID',
+    IND: 'IN', IRL: 'IE', IRN: 'IR', IRQ: 'IQ', ISL: 'IS', ISR: 'IL', ITA: 'IT', JAM: 'JM',
+    JOR: 'JO', JPN: 'JP', KAZ: 'KZ', KEN: 'KE', KGZ: 'KG', KOR: 'KR', KSA: 'SA', KUW: 'KW',
+    LAO: 'LA', LBN: 'LB', LBR: 'LR', LBY: 'LY', LCA: 'LC', LES: 'LS', LIE: 'LI', LTU: 'LT',
+    LUX: 'LU', LVA: 'LV', MAD: 'MG', MAR: 'MA', MAS: 'MY', MDA: 'MD', MDV: 'MV', MEX: 'MX',
+    MKD: 'MK', MLI: 'ML', MLT: 'MT', MNE: 'ME', MON: 'MC', MOZ: 'MZ', MRI: 'MU', MTN: 'MR',
+    MWI: 'MW', MYA: 'MM', NAM: 'NA', NCA: 'NI', NED: 'NL', NEP: 'NP', NGA: 'NG', NIG: 'NE',
+    NOR: 'NO', NZL: 'NZ', OMA: 'OM', PAK: 'PK', PAN: 'PA', PAR: 'PY', PER: 'PE', PHI: 'PH',
+    PLE: 'PS', PNG: 'PG', POL: 'PL', POR: 'PT', PRK: 'KP', PUR: 'PR', QAT: 'QA', ROU: 'RO',
+    RSA: 'ZA', RUS: 'RU', RWA: 'RW', SAL: 'SV', SDN: 'SD', SEN: 'SN', SGP: 'SG', SKN: 'KN',
+    SLE: 'SL', SMR: 'SM', SOL: 'SB', SOM: 'SO', SRB: 'RS', SRI: 'LK', SSD: 'SS', STP: 'ST',
+    SUI: 'CH', SUR: 'SR', SVK: 'SK', SVN: 'SI', SWE: 'SE', SWZ: 'SZ', SYR: 'SY', TAH: 'PF',
+    TAN: 'TZ', TGA: 'TO', THA: 'TH', TJK: 'TJ', TKM: 'TM', TLS: 'TL', TOG: 'TG', TRI: 'TT',
+    TUN: 'TN', TUR: 'TR', UAE: 'AE', UGA: 'UG', UKR: 'UA', URU: 'UY', USA: 'US', UZB: 'UZ',
+    VAN: 'VU', VEN: 'VE', VIE: 'VN', VIN: 'VC', YEM: 'YE', ZAM: 'ZM', ZIM: 'ZW',
+};
+// Subdivision and special-case flags that don't map via ISO alpha-2
+const FIFA_EMOJI_OVERRIDE = {
+    ENG: '🏴󠁧󠁢󠁥󠁮󠁧󠁿', SCO: '🏴󠁧󠁢󠁳󠁣󠁴󠁿', WAL: '🏴󠁧󠁢󠁷󠁬󠁳󠁿', NIR: '🏴󠁧󠁢󠁮󠁩󠁲󠁿',
+    KOS: '🇽🇰', TPE: '🇹🇼',
+};
+const isoToEmoji = iso2 =>
+    String.fromCodePoint(...[...iso2.toUpperCase()].map(c => 0x1F1E6 + c.charCodeAt(0) - 65));
+
+function fifaCodeToEmoji(code) {
+    if (!code) return '🏳';
+    if (FIFA_EMOJI_OVERRIDE[code]) return FIFA_EMOJI_OVERRIDE[code];
+    const iso2 = FIFA_TO_ISO2[code];
+    return iso2 ? isoToEmoji(iso2) : '🏳';
+}
 
 let wmConfig = {
     tournament: null,
@@ -165,16 +204,8 @@ async function initApp(isLiveUpdate = false) {
                 return match ? parseInt(match[1]) : null;
             };
 
-            if (m.Home?.PictureUrl) {
-                const url = m.Home.PictureUrl.replace('{format}', 'sq').replace('{size}', '1');
-                wmConfig.teamFlags[homeName] = url;
-                if (!flagCache[url]) { flagCache[url] = new Image(); flagCache[url].src = url; }
-            }
-            if (m.Away?.PictureUrl) {
-                const url = m.Away.PictureUrl.replace('{format}', 'sq').replace('{size}', '1');
-                wmConfig.teamFlags[awayName] = url;
-                if (!flagCache[url]) { flagCache[url] = new Image(); flagCache[url].src = url; }
-            }
+            if (m.Home?.IdCountry) wmConfig.teamFlags[homeName] = fifaCodeToEmoji(m.Home.IdCountry);
+            if (m.Away?.IdCountry) wmConfig.teamFlags[awayName] = fifaCodeToEmoji(m.Away.IdCountry);
 
             return {
                 group: m.GroupName?.[0]?.Description ? m.GroupName[0].Description.split(' ').pop() : null,
@@ -448,7 +479,7 @@ function renderKnockoutPhase() {
 
         "1. Qualifikationsrunde": 1,
         "Sechzehntelfinale": 2,
-        "1. Runde": 3,
+        "1. Runde": 3,
         "Vorrunde": 3,
         "Achtelfinale": 3,
         "Viertelfinale": 4,
@@ -463,7 +494,7 @@ function renderKnockoutPhase() {
     // Create a lookup map and determine bracket order starting from the Final
     const matchByNumber = new Map(koMatches.map(m => [m.MatchNumber, m]));
     const bracketOrder = [];
-    const finalMatch = koMatches.find(m => m.round === "Finale" || m.round === "Final");
+    const finalMatch = koMatches.find(m => ["Finale", "Final", "Finalrunde"].includes(m.round));
 
     if (finalMatch) {
         const queue = [finalMatch];
@@ -491,14 +522,13 @@ function renderKnockoutPhase() {
 
         if (order === 5) {
             // Sortierung innerhalb der Spalte: Finale oben, Platz 3 unten
-            matchesInColumn.sort((a, b) => (a.round === "Finale" || a.round === "Final") ? -1 : 1);
+            matchesInColumn.sort((a, b) => (["Finale", "Final", "Finalrunde"].includes(a.round)) ? -1 : 1);
         }
 
         const roundDiv = document.createElement('div');
         roundDiv.className = 'round-column';
 
         let displayTitle = matchesInColumn[0].round;
-        if (order === 5) displayTitle = "Finale";
 
         roundDiv.innerHTML = `<h3>${displayTitle}</h3>`;
 
@@ -558,9 +588,8 @@ function renderKnockoutPhase() {
  * Erzeugt den HTML-Code für eine Landesflagge
  */
 function getFlagHtml(teamName) {
-    const logoUrl = "https://digitalhub.fifa.com/m/1a33060ce1c1c4d6/original/WC26_Logo.png";
-    const url = wmConfig.teamFlags[teamName] || logoUrl;
-    return `<img src="${url}" class="flag" alt="${teamName || 'TBD'}">`;
+    const emoji = wmConfig.teamFlags[teamName] || '🏳';
+    return `<span class="flag" title="${teamName || 'TBD'}">${emoji}</span>`;
 }
 
 /**
