@@ -24,7 +24,7 @@ const FIFA_TO_ISO2 = {
     BEL: 'BE', BEN: 'BJ', BER: 'BM', BHU: 'BT', BIH: 'BA', BLR: 'BY', BLZ: 'BZ', BOL: 'BO',
     BOT: 'BW', BRA: 'BR', BRB: 'BB', BRU: 'BN', BUL: 'BG', BUR: 'BF', CAM: 'KH', CAN: 'CA',
     CAY: 'KY', CGO: 'CG', CHA: 'TD', CHI: 'CL', CHN: 'CN', CIV: 'CI', CMR: 'CM', COD: 'CD',
-    COL: 'CO', COM: 'KM', CPV: 'CV', CRC: 'CR', CRO: 'HR', CUB: 'CU', CUR: 'CW', CYP: 'CY',
+    COL: 'CO', COM: 'KM', CPV: 'CV', CRC: 'CR', CRO: 'HR', CUB: 'CU', CUW: 'CW', CYP: 'CY',
     CZE: 'CZ', DEN: 'DK', DJI: 'DJ', DMA: 'DM', DOM: 'DO', ECU: 'EC', EGY: 'EG', EQG: 'GQ',
     ERI: 'ER', ESP: 'ES', EST: 'EE', ETH: 'ET', FIJ: 'FJ', FIN: 'FI', FRA: 'FR', FRO: 'FO',
     GAB: 'GA', GAM: 'GM', GEO: 'GE', GER: 'DE', GHA: 'GH', GNB: 'GW', GRE: 'GR', GRN: 'GD',
