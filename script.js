@@ -43,11 +43,13 @@ const FIFA_TO_ISO2 = {
     TAN: 'TZ', TGA: 'TO', THA: 'TH', TJK: 'TJ', TKM: 'TM', TLS: 'TL', TOG: 'TG', TRI: 'TT',
     TUN: 'TN', TUR: 'TR', UAE: 'AE', UGA: 'UG', UKR: 'UA', URU: 'UY', USA: 'US', UZB: 'UZ',
     VAN: 'VU', VEN: 'VE', VIE: 'VN', VIN: 'VC', YEM: 'YE', ZAM: 'ZM', ZIM: 'ZW',
+    FRG: 'DE', TCH: 'CZ', YUG: '',
 };
 // Subdivision and special-case flags that don't map via ISO alpha-2
 const FIFA_EMOJI_OVERRIDE = {
     ENG: '🏴󠁧󠁢󠁥󠁮󠁧󠁿', SCO: '🏴󠁧󠁢󠁳󠁣󠁴󠁿', WAL: '🏴󠁧󠁢󠁷󠁬󠁳󠁿', NIR: '🏴󠁧󠁢󠁮󠁩󠁲󠁿',
     KOS: '🇽🇰', TPE: '🇹🇼',
+    GDR: '🇩🇪', YUG: '<img src="https://api.fifa.com/api/v3/picture/flags-sq-1/YUG" />'
 };
 const isoToEmoji = iso2 =>
     String.fromCodePoint(...[...iso2.toUpperCase()].map(c => 0x1F1E6 + c.charCodeAt(0) - 65));

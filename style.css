@@ -51,6 +51,7 @@ td, th { padding: 10px; text-align: center; border-bottom: 1px solid #eee; }
     margin-left: 4px;
     flex-shrink: 0;
 }
+.flag img { height: 1em; }
 
 .match-list
     { margin-top: 15px; font-size: 0.85em; }
