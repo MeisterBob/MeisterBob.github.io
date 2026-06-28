@@ -616,7 +616,7 @@ function checkAutoCollapse() {
         const groups = document.getElementById('groups-container');
         if (groups && !groups.classList.contains('collapsed-content')) toggleSection('groups-container');
     }
-    if (koMatches.length > 0 && koMatches.some(m => m.scoreHome !== null)) {
+    if (groupMatches.length > 0 && groupMatches.every(m => m.scoreHome !== null)) {
         const thirds = document.getElementById('best-thirds-container');
         if (thirds && !thirds.classList.contains('collapsed-content')) toggleSection('best-thirds-container');
     }
