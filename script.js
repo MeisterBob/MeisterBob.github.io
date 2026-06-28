@@ -75,9 +75,9 @@ let overallTableSort = { key: 'pts', dir: -1 };
 const tvLogo = {
     DasErste: 'ard.png',
     ZDF: 'zdf.webp',
-    'FUSSBALL.TV 1': 'magenta.webp',
-    'FUSSBALL.TV 2': 'magenta.webp',
-    'FUSSBALL.TV 3': 'magenta.webp',
+    // 'FUSSBALL.TV 1': 'magenta.webp',
+    // 'FUSSBALL.TV 2': 'magenta.webp',
+    // 'FUSSBALL.TV 3': 'magenta.webp',
 };
 document.addEventListener('DOMContentLoaded', async () => {
     await loadTournaments();
